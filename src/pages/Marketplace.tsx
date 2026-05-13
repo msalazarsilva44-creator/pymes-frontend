@@ -4,7 +4,7 @@ import { api } from '../services/api'
 import { useDebounce } from '../hooks/useDebounce'
 import { useBackButtonGuard } from '../hooks/useBackButtonGuard'
 import { useAuth } from '../context/AuthContext'
-import { Search, MapPin, Package, Wrench } from 'lucide-react'
+import { Search, MapPin, Package, Wrench, SlidersHorizontal, X } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import Pagination from '../components/Pagination'
 import BackButtonModal from '../components/BackButtonModal'
@@ -61,6 +61,7 @@ export default function Marketplace() {
   }, [token]))
 
   const [tab, setTab] = useState<'servicios' | 'productos'>('servicios')
+  const [showFilters, setShowFilters] = useState(false)
   const [empresas, setEmpresas] = useState<any[]>([])
   const [productos, setProductos] = useState<any[]>([])
   const [categorias, setCategorias] = useState<any[]>(getInitialCategorias)
@@ -354,17 +355,45 @@ export default function Marketplace() {
 
       {/* Header */}
       <div className="bg-gradient-to-r from-mercarof-navy to-mercarof-cyan text-white">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold">Marketplace</h1>
-          <p className="text-white/90 mt-1">Encuentra los mejores servicios y productos locales</p>
+        <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Marketplace</h1>
+            <p className="text-white/90 mt-1 text-sm md:text-base">Encuentra los mejores servicios y productos locales</p>
+          </div>
+          {/* Mobile filter toggle */}
+          <button
+            onClick={() => setShowFilters(true)}
+            className="md:hidden flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl text-white font-semibold text-sm transition-all shrink-0"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filtros
+          </button>
         </div>
       </div>
+
+      {/* Mobile filter overlay backdrop */}
+      {showFilters && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowFilters(false)} />
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex gap-6">
           {/* Sidebar con filtros */}
-          <div className="w-72 flex-shrink-0">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+          <div className={`
+            fixed md:static inset-y-0 left-0 z-50 md:z-auto
+            w-80 md:w-72 flex-shrink-0
+            transform transition-transform duration-300 ease-out md:transform-none
+            ${showFilters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            overflow-y-auto md:overflow-visible
+          `}>
+            <div className="bg-white md:rounded-2xl shadow-lg p-6 md:sticky md:top-4 min-h-full md:min-h-0" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+              {/* Mobile close button */}
+              <div className="flex items-center justify-between mb-4 md:hidden">
+                <span className="font-bold text-gray-900">Filtros</span>
+                <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
               {/* Tabs */}
               <div className="flex gap-2 mb-6">
                 <button
@@ -472,6 +501,14 @@ export default function Marketplace() {
                   <option value="mas_vendidos">Más vendidos</option>
                 </select>
               </div>
+
+              {/* Mobile apply button */}
+              <button
+                onClick={() => setShowFilters(false)}
+                className="w-full mt-6 py-3 bg-mercarof-navy text-white rounded-xl font-semibold text-sm md:hidden"
+              >
+                Aplicar filtros
+              </button>
             </div>
           </div>
 
@@ -501,7 +538,7 @@ export default function Marketplace() {
                 </div>
               ) : (
                 <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {empresas.map((empresa) => (
                     <Link
                       key={empresa.id}
@@ -587,7 +624,7 @@ export default function Marketplace() {
                 </div>
               ) : (
                 <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
                   {productos.map((producto) => (
                     <Link
                       key={producto.id}
