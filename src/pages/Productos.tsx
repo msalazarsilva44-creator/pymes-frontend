@@ -207,7 +207,7 @@ export default function Productos() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-            <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} rows="3" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" placeholder="Detalle del producto..." />
+            <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" placeholder="Detalle del producto..." />
           </div>
           <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
             <label className="block text-sm font-medium text-gray-700 mb-2">📷 Imágenes <span className="text-gray-400 font-normal">(opcional, hasta 5)</span></label>
@@ -287,7 +287,7 @@ export default function Productos() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                <textarea value={editForm.descripcion || ''} onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} rows="3" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" />
+                <textarea value={editForm.descripcion || ''} onChange={e => setEditForm({ ...editForm, descripcion: e.target.value })} rows={3} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={editForm.es_basico} onChange={e => setEditForm({ ...editForm, es_basico: e.target.checked })} className="rounded border-gray-300 text-mercarof-cyan" />
