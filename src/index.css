@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Colores principales */
+  --color-mercarof-primary: #0F3D6E;
+  --color-mercarof-brand: #1D6FAD;
+  --color-mercarof-accent: #00B4D8;
+  --color-mercarof-surface: #F0F6FC;
+  --color-mercarof-text: #1E2A3A;
+  --color-mercarof-muted: #6B7A90;
+
+  /* Colores legacy (compatibilidad con componentes existentes) */
+  --color-mercarof-navy: #0F3D6E;
+  --color-mercarof-navy-dark: #002942;
+  --color-mercarof-navy-light: #1D6FAD;
+  --color-mercarof-cyan: #00B4D8;
+  --color-mercarof-cyan-dark: #0082B8;
+  --color-mercarof-cyan-light: #33B8E8;
+
+  /* Fuentes */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Sora', sans-serif;
+
+  /* Animaciones */
+  --animate-fade-up: fade-up 0.6s ease-out forwards;
+  --animate-fade-up-delay: fade-up 0.6s ease-out 0.2s forwards;
+  --animate-fade-up-delay2: fade-up 0.6s ease-out 0.4s forwards;
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+  --animate-typing: typing 0.9s step-end infinite;
+  --animate-scale-in: scale-in 0.6s ease-out forwards;
+  --animate-counter: counter 0.5s ease-out forwards;
+
+  /* Sombras */
+  --shadow-mercarof: 0 8px 40px rgba(15, 61, 110, 0.18);
+  --shadow-search: 0 20px 60px rgba(15, 61, 110, 0.22);
+  --shadow-card: 0 2px 16px rgba(15, 61, 110, 0.08);
+
+  @keyframes fade-up {
+    0%   { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    0%   { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  @keyframes typing {
+    0%, 100% { border-right-color: #00B4D8; }
+    50%      { border-right-color: transparent; }
+  }
+  @keyframes scale-in {
+    0%   { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes counter {
+    0%   { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  }
+}
+
+/* Scroll reveal — aplicada vía IntersectionObserver */
+.animate-in {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-ready {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Botón "Limpiar" rojo con animación wiggle al hover */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1.05); }
+  20%      { transform: rotate(-3deg) scale(1.05); }
+  40%      { transform: rotate(3deg) scale(1.05); }
+  60%      { transform: rotate(-2deg) scale(1.05); }
+  80%      { transform: rotate(2deg) scale(1.05); }
+}
+
+.btn-clear-red {
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 2px solid #dc2626;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+}
+.btn-clear-red:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  animation: wiggle 0.5s ease-in-out infinite;
+}
+.btn-clear-red:active {
+  transform: scale(0.97);
+}
+
+/* Shimmer en botón CTA */
+.btn-shimmer {
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    105deg,
+    #1D6FAD 0%,
+    #00B4D8 40%,
+    #1D6FAD 60%,
+    #0F3D6E 100%
+  );
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* Cursor typing */
+.typing-cursor {
+  border-right: 3px solid #00B4D8;
+  animation: typing 0.9s step-end infinite;
+  padding-right: 4px;
+}
