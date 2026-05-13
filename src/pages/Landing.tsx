@@ -33,6 +33,17 @@ const CUSTOM_STYLES = `
   animation: typing 3.5s steps(30, end);
 }
 
+@media (max-width: 640px) {
+  .animate-typing {
+    white-space: normal;
+    animation: none;
+    overflow: visible;
+  }
+  .cursor-blink {
+    display: none;
+  }
+}
+
 .cursor-blink {
   display: inline-block;
   width: 2px;
@@ -189,7 +200,7 @@ export default function Landing() {
 
       {/* --- HEADER --- */}
       <header className={`fixed top-0 w-full z-50 h-16 transition-all duration-300 border-b backdrop-blur-md bg-white/95 ${isScrolled ? 'shadow-sm border-gray-100' : 'border-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-8 h-full flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-full flex items-center justify-between">
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-2 group cursor-pointer">
               <div className="w-10 h-10 brand-gradient rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-lg">M</div>
@@ -271,17 +282,17 @@ export default function Landing() {
           </svg>
         </div>
 
-        <div className="max-w-7xl mx-auto px-8 w-full z-10 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-4">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 w-full z-10 text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-4 px-2">
             Consigue lo que buscas <br />
             <span className="text-[#00B4D8] animate-typing inline-block">en menos de 30s<span className="cursor-blink"></span></span>
           </h1>
-          <p className="text-white/80 text-lg max-w-2xl mx-auto mb-10">
+          <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto mb-8 px-2">
             Miles de productos y servicios al alcance de un clic. Conectamos compradores y vendedores en toda la región de forma segura y rápida.
           </p>
 
-          <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-2xl p-2 flex flex-col md:flex-row items-center gap-2 reveal-hidden reveal-visible" style={{ transitionDelay: '300ms' }}>
-            <div className="flex-shrink-0 px-6 border-r border-gray-200 hidden md:block">
+          <div className="max-w-4xl mx-auto w-full bg-white rounded-2xl shadow-2xl p-2 flex flex-col md:flex-row items-stretch gap-2 reveal-hidden reveal-visible" style={{ transitionDelay: '300ms' }}>
+            <div className="flex-shrink-0 px-4 md:px-6 border-b md:border-b-0 md:border-r border-gray-200 hidden md:flex items-center">
               <select 
                 value={searchCategory}
                 onChange={(e) => setSearchCategory(e.target.value)}
@@ -296,21 +307,21 @@ export default function Landing() {
             <input 
               type="text" 
               placeholder="¿Qué estás buscando hoy?"
-              className="flex-1 bg-transparent text-[#1E2A3A] px-6 py-4 focus:outline-none text-base md:text-lg w-full"
+              className="flex-1 bg-transparent text-[#1E2A3A] px-4 md:px-6 py-3 md:py-4 focus:outline-none text-base md:text-lg w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
 
             <button 
               onClick={handleSearch}
-              className="brand-gradient w-full md:w-auto px-10 py-4 rounded-xl font-bold text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              className="brand-gradient w-full md:w-auto px-6 md:px-10 py-3 md:py-4 rounded-xl font-bold text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2"
             >
               <Icons.Search />
               {isSearching ? 'Buscando...' : 'Buscar'}
             </button>
           </div>
 
-          <div className="flex justify-center gap-4 mt-4 mb-20">
+          <div className="flex flex-wrap justify-center gap-3 mt-4 mb-16 md:mb-20 px-4">
             <span className="text-xs text-white/60 font-medium uppercase tracking-widest">Popular:</span>
             {['Diseño web', 'Electrónica', 'Consultoría'].map((tag) => (
               <button 
@@ -323,7 +334,7 @@ export default function Landing() {
             ))}
           </div>
 
-          <div className="absolute bottom-6 left-0 w-full flex justify-center gap-12 text-sm font-medium border-t border-white/10 pt-6">
+          <div className="absolute bottom-0 left-0 w-full flex flex-wrap justify-center gap-4 md:gap-12 text-xs md:text-sm font-medium border-t border-white/10 py-4 px-4">
             <div className="flex items-center gap-2"><span>10,000+ Productos</span></div>
             <div className="w-px h-4 bg-white/20 hidden md:block"></div>
             <div className="flex items-center gap-2"><span>5,000+ Vendedores</span></div>
@@ -334,7 +345,7 @@ export default function Landing() {
       </section>
 
       {/* --- CATEGORIES --- */}
-      <section className="py-24 max-w-7xl mx-auto px-8">
+      <section className="py-16 md:py-24 max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-12 gap-8 items-start">
           <div className="col-span-12 lg:col-span-8 flex flex-col gap-12">
             <div ref={addToReveal} className="reveal-hidden">
@@ -494,7 +505,7 @@ export default function Landing() {
       </section>
 
       {/* --- FOOTER --- */}
-      <footer className="fixed bottom-0 w-full bg-[#0F3D6E] text-white/60 py-4 px-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-[10px] z-[40]">
+      <footer className="w-full bg-[#0F3D6E] text-white/60 py-5 px-4 md:px-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-3 text-[10px] z-[40] mt-4">
         <div>
           &copy; 2025 <span className="text-white font-bold">MERCAROF</span>. Conectando oportunidades en toda la región.
         </div>
