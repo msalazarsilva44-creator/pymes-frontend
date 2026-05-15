@@ -78,8 +78,8 @@ export default function Register() {
       return
     }
 
-    if (tipo === 'empresa' && rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc)) {
-      setError('El RIF tiene formato inválido. Debe ser tipo J-12345678-9')
+    if (tipo === 'empresa' && rfc && !/^[JGVEC]-\d{8}$/.test(rfc)) {
+      setError('El RIF tiene formato inválido. Debe ser tipo J-12345678')
       setLoading(false)
       return
     }
@@ -274,26 +274,24 @@ export default function Register() {
           {tipo === 'empresa' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">RIF (ej: J-12345678-9)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">RIF (ej: J-12345678)</label>
                 <input
                   value={rfc}
                   onChange={(e) => {
-                    // Allow: optional letter prefix + digits + optional dash + check digit
                     const val = e.target.value.toUpperCase()
-                    // Only allow J/G/V/E/C, digits and dashes
-                    if (/^[JGVEC]?[-]?\d{0,8}[-]?\d?$/.test(val) || val === '') {
+                    if (/^[JGVEC]?[-]?\d{0,8}$/.test(val) || val === '') {
                       setRfc(val)
                     }
                   }}
-                  maxLength={12}
+                  maxLength={10}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-mercarof-cyan ${
-                    rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc) ? 'border-red-300' : 'border-gray-300'
+                    rfc && !/^[JGVEC]-\d{8}$/.test(rfc) ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="J-00000000-0"
+                  placeholder="J-00000000"
                 />
-                <p className="text-xs mt-1 text-gray-400">Formato: J-12345678-9 (letra + 8 dígitos + dígito verificador)</p>
-                {rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc) && (
-                  <p className="text-xs mt-0.5 text-red-500">Formato inválido. Ej: J-12345678-9</p>
+                <p className="text-xs mt-1 text-gray-400">Formato: J-12345678 (letra + guón + 8 dígitos, máx 10 caracteres)</p>
+                {rfc && !/^[JGVEC]-\d{8}$/.test(rfc) && (
+                  <p className="text-xs mt-0.5 text-red-500">Formato inválido. Ej: J-12345678</p>
                 )}
               </div>
               <div>
