@@ -78,14 +78,20 @@ export default function Register() {
       return
     }
 
-    if (tipo === 'empresa' && rfc.replace(/\D/g, '').length < 8) {
-      setError('El RIF debe tener al menos 8 dígitos')
+    if (tipo === 'empresa' && rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc)) {
+      setError('El RIF tiene formato inválido. Debe ser tipo J-12345678-9')
       setLoading(false)
       return
     }
 
-    if (tipo === 'empresa' && telefonoEmpresa.replace(/\D/g, '').length < 11) {
-      setError('El teléfono de la empresa debe tener al menos 11 dígitos')
+    if (tipo === 'empresa' && telefonoEmpresa.length !== 11) {
+      setError('El teléfono de la empresa debe tener exactamente 11 dígitos')
+      setLoading(false)
+      return
+    }
+
+    if (tipo === 'natural' && phone.length !== 11) {
+      setError('El teléfono debe tener exactamente 11 dígitos')
       setLoading(false)
       return
     }
@@ -269,7 +275,26 @@ export default function Register() {
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">RIF (ej: J-12345678-9)</label>
-                <input value={rfc} onChange={(e) => setRfc(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" placeholder="J-00000000-0" />
+                <input
+                  value={rfc}
+                  onChange={(e) => {
+                    // Allow: optional letter prefix + digits + optional dash + check digit
+                    const val = e.target.value.toUpperCase()
+                    // Only allow J/G/V/E/C, digits and dashes
+                    if (/^[JGVEC]?[-]?\d{0,8}[-]?\d?$/.test(val) || val === '') {
+                      setRfc(val)
+                    }
+                  }}
+                  maxLength={12}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-mercarof-cyan ${
+                    rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc) ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="J-00000000-0"
+                />
+                <p className="text-xs mt-1 text-gray-400">Formato: J-12345678-9 (letra + 8 dígitos + dígito verificador)</p>
+                {rfc && !/^[JGVEC]-\d{8}-\d$/.test(rfc) && (
+                  <p className="text-xs mt-0.5 text-red-500">Formato inválido. Ej: J-12345678-9</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
@@ -296,7 +321,24 @@ export default function Register() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono de la empresa *</label>
-                <input required value={telefonoEmpresa} onChange={(e) => setTelefonoEmpresa(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" placeholder="0412-1234567" />
+                <input
+                  required
+                  value={telefonoEmpresa}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11)
+                    setTelefonoEmpresa(digits)
+                  }}
+                  maxLength={11}
+                  inputMode="numeric"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-mercarof-cyan ${
+                    telefonoEmpresa && telefonoEmpresa.length < 11 ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  placeholder="04121234567"
+                />
+                <p className="text-xs mt-1 text-gray-400">{telefonoEmpresa.length}/11 dígitos</p>
+                {telefonoEmpresa && telefonoEmpresa.length < 11 && (
+                  <p className="text-xs mt-0.5 text-red-500">Debe tener exactamente 11 dígitos</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email de contacto *</label>
@@ -311,7 +353,24 @@ export default function Register() {
           {tipo === 'natural' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
-              <input required value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-mercarof-cyan" />
+              <input
+                required
+                value={phone}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11)
+                  setPhone(digits)
+                }}
+                maxLength={11}
+                inputMode="numeric"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-mercarof-cyan ${
+                  phone && phone.length < 11 ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="04121234567"
+              />
+              <p className="text-xs mt-1 text-gray-400">{phone.length}/11 dígitos</p>
+              {phone && phone.length < 11 && (
+                <p className="text-xs mt-0.5 text-red-500">Debe tener exactamente 11 dígitos</p>
+              )}
             </div>
           )}
           <div>
