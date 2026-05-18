@@ -2,7 +2,38 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 import DashboardLayout from '../components/DashboardLayout'
-import { Upload, Check } from 'lucide-react'
+import { Upload, Check, Star } from 'lucide-react'
+
+type ColorBadge = 'blue' | 'violet' | 'emerald' | 'amber' | 'rose'
+
+type Plan = {
+  id: number
+  nombre: string
+  slug: string
+  descripcion: string | null
+  precio_mensual: number
+  precio_anual: number
+  caracteristicas: string[] | null
+  color_badge: ColorBadge
+  destacado: boolean
+  orden: number
+}
+
+const CARD_RING: Record<ColorBadge, string> = {
+  blue: 'ring-blue-500',
+  violet: 'ring-violet-500',
+  emerald: 'ring-emerald-500',
+  amber: 'ring-amber-500',
+  rose: 'ring-rose-500',
+}
+
+const CARD_ACCENT: Record<ColorBadge, string> = {
+  blue: 'from-blue-500 to-blue-600',
+  violet: 'from-violet-500 to-violet-600',
+  emerald: 'from-emerald-500 to-emerald-600',
+  amber: 'from-amber-500 to-amber-600',
+  rose: 'from-rose-500 to-rose-600',
+}
 
 const METODOS_PAGO = [
   { tipo: 'banco', nombre: '🏦 Banco' },
@@ -13,11 +44,11 @@ const METODOS_PAGO = [
 
 export default function SolicitarPlan() {
   const navigate = useNavigate()
-  const [planes, setPlanes] = useState<any[]>([])
+  const [planes, setPlanes] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [planId, setPlanId] = useState('')
-  const [tipoPeriodo, setTipoPeriodo] = useState('')
+  const [planId, setPlanId] = useState<number | null>(null)
+  const [tipoPeriodo, setTipoPeriodo] = useState<'mensual' | 'anual'>('mensual')
   const [metodoPago, setMetodoPago] = useState('banco')
   const [formData, setFormData] = useState({
     nombre_empresa_pagadora: '',
@@ -28,35 +59,28 @@ export default function SolicitarPlan() {
   const [captureFile, setCaptureFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-  const [precioTotal, setPrecioTotal] = useState<number>(0)
 
   useEffect(() => {
+    const cargarPlanes = async () => {
+      try {
+        const res = await api.get('/membresias/activas')
+        const data: Plan[] = (res.data.data || []).filter((p: Plan) => p.slug !== 'gratis')
+        setPlanes(data)
+        const destacado = data.find(p => p.destacado) || data[0]
+        if (destacado) setPlanId(destacado.id)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
     cargarPlanes()
   }, [])
 
-  const cargarPlanes = async () => {
-    try {
-      const res = await api.get('/planes')
-      const planesPago = (res.data.data || []).filter((p: any) => p.slug !== 'gratis')
-      setPlanes(planesPago)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (planId && tipoPeriodo) {
-      const plan = planes.find(p => p.id === parseInt(planId))
-      if (plan) {
-        const precio = tipoPeriodo === 'mensual' ? plan.precio_mensual : plan.precio_anual
-        setPrecioTotal(precio)
-      }
-    } else {
-      setPrecioTotal(0)
-    }
-  }, [planId, tipoPeriodo, planes])
+  const selectedPlan = planes.find(p => p.id === planId)
+  const precioTotal = selectedPlan
+    ? (tipoPeriodo === 'mensual' ? selectedPlan.precio_mensual : selectedPlan.precio_anual)
+    : 0
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,14 +94,14 @@ export default function SolicitarPlan() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!planId || !tipoPeriodo || !captureFile) {
+    if (!planId || !captureFile) {
       setMessage({ text: 'Completa todos los campos requeridos', type: 'error' })
       return
     }
     setSubmitting(true)
     try {
       const fd = new FormData()
-      fd.append('plan_id', planId)
+      fd.append('plan_id', String(planId))
       fd.append('tipo_periodo', tipoPeriodo)
       fd.append('metodo_pago', metodoPago)
       fd.append('nombre_empresa_pagadora', formData.nombre_empresa_pagadora)
@@ -140,38 +164,103 @@ export default function SolicitarPlan() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">📋 Seleccionar Plan</h2>
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Plan *</label>
-            <select
-              value={planId}
-              onChange={e => setPlanId(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-            >
-              <option value="">-- Selecciona un plan --</option>
-              {planes.map((plan: any) => (
-                <option key={plan.id} value={plan.id}>{plan.nombre}</option>
-              ))}
-            </select>
+
+          {/* Period toggle */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex bg-gray-100 rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setTipoPeriodo('mensual')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  tipoPeriodo === 'mensual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Mensual
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipoPeriodo('anual')}
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  tipoPeriodo === 'anual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Anual
+                <span className="ml-1.5 text-xs text-emerald-600 font-bold">¡Ahorra!</span>
+              </button>
+            </div>
           </div>
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Periodo de Pago *</label>
-            <select
-              value={tipoPeriodo}
-              onChange={e => setTipoPeriodo(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-            >
-              <option value="">-- Selecciona el periodo --</option>
-              <option value="mensual">Mensual</option>
-              <option value="anual">Anual (¡Ahorra dinero!)</option>
-            </select>
+
+          {/* Plan cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+            {planes.map((plan) => {
+              const isSelected = planId === plan.id
+              const precio = tipoPeriodo === 'mensual' ? plan.precio_mensual : plan.precio_anual
+              const ahorroAnual = (plan.precio_mensual * 12) - plan.precio_anual
+              const color = plan.color_badge || 'blue'
+
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => setPlanId(plan.id)}
+                  className={`relative text-left p-5 rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? `${CARD_RING[color]} ring-2 border-transparent shadow-lg`
+                      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                  }`}
+                >
+                  {/* Accent bar */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-xl bg-gradient-to-r ${CARD_ACCENT[color]}`} />
+
+                  {/* Destacado */}
+                  {plan.destacado && (
+                    <div className="flex items-center gap-1 mb-3">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <span className="text-xs font-bold text-amber-600">Más popular</span>
+                    </div>
+                  )}
+
+                  <h3 className="text-lg font-bold text-gray-900">{plan.nombre}</h3>
+                  {plan.descripcion && <p className="text-xs text-gray-500 mt-0.5">{plan.descripcion}</p>}
+
+                  <div className="mt-3 mb-4">
+                    <span className="text-2xl font-bold text-gray-900">${precio}</span>
+                    <span className="text-sm text-gray-500 ml-1">USD/{tipoPeriodo === 'mensual' ? 'mes' : 'año'}</span>
+                    {tipoPeriodo === 'anual' && ahorroAnual > 0 && (
+                      <p className="text-xs text-emerald-600 font-semibold mt-1">Ahorras ${ahorroAnual.toFixed(2)}/año</p>
+                    )}
+                  </div>
+
+                  {plan.caracteristicas && plan.caracteristicas.length > 0 && (
+                    <ul className="space-y-1.5">
+                      {plan.caracteristicas.map((c: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                          <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* Selected indicator */}
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </button>
+              )
+            })}
           </div>
-          {precioTotal > 0 && (
+
+          {/* Price summary */}
+          {precioTotal > 0 && selectedPlan && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Total a Pagar:</p>
-                <p className="text-3xl font-bold text-green-600">${precioTotal.toFixed(2)}</p>
+                <p className="text-sm text-gray-600">Plan <strong>{selectedPlan.nombre}</strong> — {tipoPeriodo === 'mensual' ? 'Mensual' : 'Anual'}</p>
+                <p className="text-3xl font-bold text-green-600">${precioTotal.toFixed(2)} USD</p>
               </div>
             </div>
           )}
