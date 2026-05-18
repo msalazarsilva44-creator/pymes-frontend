@@ -21,6 +21,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+  // Detectar sesión expirada o inactividad desde query params
+  const params = new URLSearchParams(window.location.search)
+  const sessionMsg = params.get('expired') === '1'
+    ? 'Tu sesión expiró por seguridad. Inicia sesión nuevamente.'
+    : params.get('idle') === '1'
+    ? 'Tu sesión se cerró por inactividad.'
+    : null
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -304,6 +312,13 @@ export default function Login() {
 
         <h1 style={styles.formTitle}>Bienvenido de nuevo</h1>
         <p style={styles.formSubtitle}>Ingresa tus datos para continuar</p>
+
+        {sessionMsg && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 12, backgroundColor: '#FEF3C7', border: '1px solid #F59E0B', color: '#92400E', fontSize: 14, marginBottom: 12 }}>
+            <AlertCircle size={18} />
+            <span>{sessionMsg}</span>
+          </div>
+        )}
 
         <AnimatePresence>
           {error && (
