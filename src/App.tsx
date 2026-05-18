@@ -27,6 +27,8 @@ import Checkout from './pages/Checkout'
 import MisOrdenes from './pages/MisOrdenes'
 import OrdenDetail from './pages/OrdenDetail'
 import CartDrawer from './components/CartDrawer'
+import DashboardAdmin from './pages/DashboardAdmin'
+import Membresias from './pages/Membresias'
 
 function App() {
 
@@ -59,6 +61,8 @@ function App() {
         <Route path="/checkout" element={<RequireAuth role="cliente"><Checkout /></RequireAuth>} />
         <Route path="/mis-ordenes" element={<RequireAuth role="cliente"><MisOrdenes /></RequireAuth>} />
         <Route path="/mis-ordenes/:id" element={<RequireAuth role="cliente"><OrdenDetail /></RequireAuth>} />
+        <Route path="/dashboard/admin" element={<RequireAuth role="admin"><DashboardAdmin /></RequireAuth>} />
+        <Route path="/dashboard/admin/membresias" element={<RequireAuth role="admin"><Membresias /></RequireAuth>} />
       </Routes>
       <CartDrawer />
       </CartProvider>
