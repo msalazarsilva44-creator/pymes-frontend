@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { api } from '../services/api'
+import { authStorage } from '../lib/authStorage'
 
 interface User {
   id: number
@@ -44,30 +45,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token')
-    const storedUser = localStorage.getItem('user')
-    const storedEmpresa = localStorage.getItem('empresa')
+    const storedToken = authStorage.getToken()
+    const storedUser = authStorage.getUser<User>()
+    const storedEmpresa = authStorage.getEmpresa<Empresa>()
     if (storedToken && storedUser) {
       setToken(storedToken)
-      try {
-        setUser(JSON.parse(storedUser))
-        if (storedEmpresa) setEmpresa(JSON.parse(storedEmpresa))
-      } catch {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('empresa')
-      }
+      setUser(storedUser)
+      if (storedEmpresa) setEmpresa(storedEmpresa)
+    } else {
+      authStorage.clear()
     }
     setIsLoading(false)
   }, [])
 
   const login = (newToken: string, newUser: User, newEmpresa: Empresa | null = null) => {
-    localStorage.setItem('auth_token', newToken)
-    localStorage.setItem('user', JSON.stringify(newUser))
+    authStorage.setToken(newToken)
+    authStorage.setUser(newUser)
     if (newEmpresa) {
-      localStorage.setItem('empresa', JSON.stringify(newEmpresa))
+      authStorage.setEmpresa(newEmpresa)
     } else {
-      localStorage.removeItem('empresa')
+      authStorage.removeEmpresa()
     }
     setToken(newToken)
     setUser(newUser)
@@ -75,9 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('empresa')
+    authStorage.clear()
     setToken(null)
     setUser(null)
     setEmpresa(null)
@@ -92,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await api.get('/auth/me')
       const fresh: Empresa | null = res.data?.data?.empresa ?? null
       if (fresh) {
-        localStorage.setItem('empresa', JSON.stringify(fresh))
+        authStorage.setEmpresa(fresh)
         setEmpresa(fresh)
       }
       return fresh
