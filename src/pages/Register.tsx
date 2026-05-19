@@ -141,8 +141,8 @@ export default function Register() {
         })
         const { access_token, user } = res.data.data
         login(access_token, user)
-        setSuccess('Registro exitoso. Redirigiendo al panel de empresa...')
-        setTimeout(() => { window.location.href = '/dashboard/empresa' }, 1500)
+        setSuccess('Registro exitoso. Redirigiendo a selección de membresía...')
+        setTimeout(() => { window.location.href = '/dashboard/empresa/solicitar-plan' }, 1500)
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Error al registrarse'
