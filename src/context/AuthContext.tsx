@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { api } from '../services/api'
 import { authStorage } from '../lib/authStorage'
+import { broadcastLogout } from '../lib/authBroadcast'
 
 interface User {
   id: number
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Token ya vencido o servidor caído — limpiamos igual
     }
     authStorage.clear()
+    broadcastLogout()
     setToken(null)
     setUser(null)
     setEmpresa(null)

@@ -1,7 +1,10 @@
+import { useCallback, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIdleTimeout } from '../hooks/useIdleTimeout'
+import { useVisibilityTimeout } from '../hooks/useVisibilityTimeout'
 import { authStorage } from '../lib/authStorage'
+import { onLogoutBroadcast } from '../lib/authBroadcast'
 
 type Role = 'admin' | 'empresa' | 'cliente'
 
@@ -13,10 +16,21 @@ interface Props {
 export default function RequireAuth({ children, role }: Props) {
   const { user, token, isLoading } = useAuth()
 
-  useIdleTimeout(() => {
+  const handleSessionExpired = useCallback(() => {
     authStorage.clear()
     window.location.href = '/login?idle=1'
-  })
+  }, [])
+
+  useIdleTimeout(handleSessionExpired)
+  useVisibilityTimeout(handleSessionExpired)
+
+  // Escuchar logout desde otra pestaña
+  useEffect(() => {
+    onLogoutBroadcast(() => {
+      authStorage.clear()
+      window.location.href = '/login'
+    })
+  }, [])
 
   if (isLoading) {
     return (
