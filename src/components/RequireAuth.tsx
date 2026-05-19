@@ -1,5 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useIdleTimeout } from '../hooks/useIdleTimeout'
+import { authStorage } from '../lib/authStorage'
 
 type Role = 'admin' | 'empresa' | 'cliente'
 
@@ -10,6 +12,11 @@ interface Props {
 
 export default function RequireAuth({ children, role }: Props) {
   const { user, token, isLoading } = useAuth()
+
+  useIdleTimeout(() => {
+    authStorage.clear()
+    window.location.href = '/login?idle=1'
+  })
 
   if (isLoading) {
     return (

@@ -71,7 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmpresa(newEmpresa)
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Token ya vencido o servidor caído — limpiamos igual
+    }
     authStorage.clear()
     setToken(null)
     setUser(null)
