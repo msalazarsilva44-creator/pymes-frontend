@@ -70,6 +70,7 @@ export default function SolicitarPlan() {
         if (destacado) setPlanId(destacado.id)
       } catch (err) {
         console.error(err)
+        setMessage({ text: 'No se pudieron cargar los planes. Intenta de nuevo más tarde.', type: 'error' })
       } finally {
         setLoading(false)
       }

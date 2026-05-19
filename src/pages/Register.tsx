@@ -139,8 +139,8 @@ export default function Register() {
         const res = await api.post('/auth/register/empresa', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
-        const { access_token, user } = res.data.data
-        login(access_token, user)
+        const { access_token, user, empresa: emp } = res.data.data
+        login(access_token, user, emp)
         setSuccess('Registro exitoso. Redirigiendo a selección de membresía...')
         setTimeout(() => { window.location.href = '/dashboard/empresa/solicitar-plan' }, 1500)
       }
