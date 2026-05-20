@@ -80,7 +80,7 @@ export default function SolicitarPlan() {
 
   const selectedPlan = planes.find(p => p.id === planId)
   const precioTotal = selectedPlan
-    ? (tipoPeriodo === 'mensual' ? selectedPlan.precio_mensual : selectedPlan.precio_anual)
+    ? Number(tipoPeriodo === 'mensual' ? selectedPlan.precio_mensual : selectedPlan.precio_anual)
     : 0
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,8 +195,8 @@ export default function SolicitarPlan() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
             {planes.map((plan) => {
               const isSelected = planId === plan.id
-              const precio = tipoPeriodo === 'mensual' ? plan.precio_mensual : plan.precio_anual
-              const ahorroAnual = (plan.precio_mensual * 12) - plan.precio_anual
+              const precio = Number(tipoPeriodo === 'mensual' ? plan.precio_mensual : plan.precio_anual)
+              const ahorroAnual = (Number(plan.precio_mensual) * 12) - Number(plan.precio_anual)
               const color = plan.color_badge || 'blue'
 
               return (
