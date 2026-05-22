@@ -93,12 +93,37 @@ export default function SolicitarPlan() {
     }
   }
 
+  const soloNumeros = (valor: string) => valor.replace(/\D/g, '')
+
+  const validarFormulario = () => {
+    const rifClean = soloNumeros(formData.rif_pagador)
+    if (rifClean.length < 7 || rifClean.length > 9) {
+      setMessage({ text: 'El RIF o cédula del pagador debe tener entre 7 y 9 dígitos numéricos.', type: 'error' })
+      return false
+    }
+    const refClean = soloNumeros(formData.referencia_bancaria)
+    if (refClean.length !== 6) {
+      setMessage({ text: 'La referencia bancaria debe tener exactamente 6 dígitos (últimos 6 de la referencia).', type: 'error' })
+      return false
+    }
+    if (!formData.nombre_empresa_pagadora.trim()) {
+      setMessage({ text: 'El nombre del pagador es requerido.', type: 'error' })
+      return false
+    }
+    if (!formData.fecha_pago) {
+      setMessage({ text: 'La fecha de pago es requerida.', type: 'error' })
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!planId || !captureFile) {
-      setMessage({ text: 'Completa todos los campos requeridos', type: 'error' })
+      setMessage({ text: 'Selecciona un plan y sube el capture de pago.', type: 'error' })
       return
     }
+    if (!validarFormulario()) return
     setSubmitting(true)
     try {
       const fd = new FormData()
@@ -136,7 +161,7 @@ export default function SolicitarPlan() {
 
   const getReferenciaPlaceholder = () => {
     switch(metodoPago) {
-      case 'banco': return 'Últimos 4-10 dígitos'
+      case 'banco': return 'Últimos 6 dígitos de la referencia'
       case 'binance': return 'ID de transacción de Binance'
       case 'paypal': return 'ID de transacción de PayPal'
       case 'zelle': return 'Código de confirmación de Zelle'
@@ -344,13 +369,15 @@ export default function SolicitarPlan() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">RIF del Pagador *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">RIF o Cédula del Pagador *</label>
               <input
                 type="text"
+                inputMode="numeric"
                 value={formData.rif_pagador}
-                onChange={e => setFormData({ ...formData, rif_pagador: e.target.value })}
+                onChange={e => setFormData({ ...formData, rif_pagador: soloNumeros(e.target.value) })}
                 required
-                placeholder="Ej: J-12345678-9"
+                placeholder="Entre 7 y 9 dígitos (RIF o cédula)"
+                maxLength={9}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               />
             </div>
@@ -358,11 +385,12 @@ export default function SolicitarPlan() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">{getReferenciaLabel()}</label>
               <input
                 type="text"
+                inputMode="numeric"
                 value={formData.referencia_bancaria}
-                onChange={e => setFormData({ ...formData, referencia_bancaria: e.target.value })}
+                onChange={e => setFormData({ ...formData, referencia_bancaria: soloNumeros(e.target.value) })}
                 required
                 placeholder={getReferenciaPlaceholder()}
-                maxLength={50}
+                maxLength={6}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg"
               />
             </div>
