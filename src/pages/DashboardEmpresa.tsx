@@ -30,7 +30,10 @@ export default function DashboardEmpresa() {
 
   const emp = data.empresa
   const m = data.metricas ?? { vistas_totales: 0, clics_totales: 0, promedio_calificacion: 0, total_resenas: 0, resenas_pendientes: 0 }
-  const plan = emp?.plan?.nombre ?? 'Gratis'
+  const sus = emp?.suscripcion
+  const plan = sus?.plan_nombre ?? emp?.plan?.nombre ?? 'Sin plan'
+  const estadoAcceso = sus?.estado_acceso ?? 'sin_plan'
+  const venceLegible = sus?.vence_legible
 
   return (
     <DashboardLayout>
@@ -40,12 +43,48 @@ export default function DashboardEmpresa() {
             <h2 className="text-2xl font-bold mb-1">{emp?.nombre_comercial} 👋</h2>
             <p className="text-white/80">{emp?.slogan || 'Gestiona tu negocio en MERCAROF'}</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-5 py-4 min-w-[160px]">
+          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-5 py-4 min-w-[180px]">
             <p className="text-sm text-white/80 mb-1">Plan Actual</p>
-            <p className="text-xl font-bold">{plan}</p>
+            <p className="text-xl font-bold flex items-center gap-2">
+              <span>{plan}</span>
+              {estadoAcceso === 'por_vencer' && (
+                <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700">Por vencer</span>
+              )}
+            </p>
+            {venceLegible && (
+              <p
+                className={`text-xs mt-2 ${
+                  estadoAcceso === 'vencida'
+                    ? 'text-rose-200'
+                    : estadoAcceso === 'por_vencer'
+                    ? 'text-amber-200'
+                    : 'text-white/70'
+                }`}
+              >
+                {estadoAcceso === 'vencida' ? `Venció el ${venceLegible}` : `Vence ${venceLegible}`}
+                {estadoAcceso === 'por_vencer' && sus?.dias_restantes != null && (
+                  <span>{` · ${sus.dias_restantes} días`}</span>
+                )}
+              </p>
+            )}
           </div>
         </div>
       </div>
+
+      {estadoAcceso === 'por_vencer' && sus?.dias_restantes != null && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Tu suscripción está por vencer</p>
+            <p className="text-sm text-amber-700">Renueva en los próximos {sus.dias_restantes} días para mantener acceso al panel sin interrupciones.</p>
+          </div>
+          <a
+            href="/pago-empresa?renovar=1"
+            className="shrink-0 rounded-lg bg-amber-500 text-white text-sm font-semibold px-4 py-2 hover:bg-amber-600 transition-all"
+          >
+            Renovar ahora
+          </a>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard label="Vistas" value={m.vistas_totales} icon={<Eye className="w-5 h-5" />} color="bg-blue-100 text-blue-600" />

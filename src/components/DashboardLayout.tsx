@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useBackButtonGuard } from '../hooks/useBackButtonGuard'
 import BackButtonModal from './BackButtonModal'
@@ -65,11 +65,13 @@ const navItems: NavItem[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, empresa, logout, refreshEmpresa } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const [showExitModal, setShowExitModal] = useState(false)
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
 
   const isApproved = empresa?.status === 'aprobado'
   const modules = empresa?.modules ?? { products: false, services: false }
+  const estadoAcceso = empresa?.suscripcion?.estado_acceso
 
   // Refrescar empresa al montar y, si sigue pendiente, hacer polling cada 30s
   // para reflejar aprobaci\u00f3n del admin sin requerir re-login.
@@ -80,6 +82,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isApproved])
+
+  useEffect(() => {
+    if (estadoAcceso === 'vencida' || estadoAcceso === 'pendiente_pago') {
+      navigate('/suscripcion-vencida', { replace: true })
+    }
+  }, [estadoAcceso, navigate])
 
   // Filtrar items: ocultar los que requieren un módulo no activo
   const visibleNavItems = navItems.filter((item) => {

@@ -28,6 +28,13 @@ api.interceptors.response.use(
       authStorage.clear()
       window.location.href = '/login?expired=1'
     }
+    if (
+      error.response?.status === 402 &&
+      error.response?.data?.codigo === 'SUSCRIPCION_INACTIVA' &&
+      window.location.pathname !== '/suscripcion-vencida'
+    ) {
+      window.location.href = '/suscripcion-vencida'
+    }
     return Promise.reject(error)
   }
 )

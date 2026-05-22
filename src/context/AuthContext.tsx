@@ -13,6 +13,17 @@ interface User {
   }
 }
 
+export type EstadoAcceso = 'activa' | 'por_vencer' | 'vencida' | 'pendiente_pago' | 'en_revision' | 'sin_plan'
+
+export interface Suscripcion {
+  plan_nombre: string
+  plan_color: string
+  estado_acceso: EstadoAcceso
+  fecha_fin: string | null
+  vence_legible: string | null
+  dias_restantes: number | null
+}
+
 export interface Empresa {
   id: number
   nombre_comercial: string
@@ -24,6 +35,11 @@ export interface Empresa {
     products: boolean
     services: boolean
   }
+  plan?: {
+    nombre: string
+    color_badge?: string
+  }
+  suscripcion?: Suscripcion
   [key: string]: any
 }
 
