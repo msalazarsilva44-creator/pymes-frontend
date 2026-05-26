@@ -209,19 +209,36 @@ export default function Landing() {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-6">
-              {['Inicio', 'Explorar', 'Vender', 'Planes', 'Contacto'].map((item, idx) => (
-                item === 'Explorar' ? (
-                  <Link
+              {['Inicio', 'Explorar', 'Vender', 'Planes', 'Contacto'].map((item, idx) => {
+                if (item === 'Explorar') {
+                  return (
+                    <Link
+                      key={item}
+                      to="/marketplace"
+                      className="text-sm font-semibold transition-all relative text-[#0F3D6E] hover:text-[#1D6FAD] animate-in"
+                      style={{ animationDelay: `${idx * 100}ms` }}
+                    >
+                      {item}
+                    </Link>
+                  )
+                }
+
+                if (item === 'Vender') {
+                  return (
+                    <Link
+                      key={item}
+                      to="/registro"
+                      className="text-sm font-semibold transition-all relative text-[#0F3D6E] hover:text-[#1D6FAD] animate-in"
+                      style={{ animationDelay: `${idx * 100}ms` }}
+                    >
+                      {item}
+                    </Link>
+                  )
+                }
+
+                return (
+                  <a
                     key={item}
-                    to="/marketplace"
-                    className="text-sm font-semibold transition-all relative text-[#0F3D6E] hover:text-[#1D6FAD] animate-in"
-                    style={{ animationDelay: `${idx * 100}ms` }}
-                  >
-                    {item}
-                  </Link>
-                ) : (
-                  <a 
-                    key={item} 
                     href={`#${item.toLowerCase()}`}
                     className={`text-sm font-semibold transition-all relative ${item === 'Inicio' ? 'text-[#1D6FAD] border-b-2 border-[#1D6FAD]' : 'text-[#0F3D6E] hover:text-[#1D6FAD]'} animate-in`}
                     style={{ animationDelay: `${idx * 100}ms` }}
@@ -229,7 +246,7 @@ export default function Landing() {
                     {item}
                   </a>
                 )
-              ))}
+              })}
             </nav>
           </div>
 
@@ -251,13 +268,29 @@ export default function Landing() {
         {/* Mobile Dropdown */}
         <div className={`md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 transition-all duration-300 overflow-hidden ${isMenuOpen ? 'max-h-screen py-4 shadow-xl' : 'max-h-0'}`}>
           <div className="flex flex-col gap-3 px-6 pb-6">
-            {['Inicio', 'Explorar', 'Vender', 'Planes', 'Contacto'].map((item) => (
-              item === 'Explorar' ? (
-                <Link key={item} to="/marketplace" className="text-lg font-semibold text-[#0F3D6E] py-2" onClick={() => setIsMenuOpen(false)}>{item}</Link>
-              ) : (
-                <a key={item} href={`#${item.toLowerCase()}`} className="text-lg font-semibold text-[#0F3D6E] py-2" onClick={() => setIsMenuOpen(false)}>{item}</a>
+            {['Inicio', 'Explorar', 'Vender', 'Planes', 'Contacto'].map((item) => {
+              if (item === 'Explorar') {
+                return (
+                  <Link key={item} to="/marketplace" className="text-lg font-semibold text-[#0F3D6E] py-2" onClick={() => setIsMenuOpen(false)}>
+                    {item}
+                  </Link>
+                )
+              }
+
+              if (item === 'Vender') {
+                return (
+                  <Link key={item} to="/registro" className="text-lg font-semibold text-[#0F3D6E] py-2" onClick={() => setIsMenuOpen(false)}>
+                    {item}
+                  </Link>
+                )
+              }
+
+              return (
+                <a key={item} href={`#${item.toLowerCase()}`} className="text-lg font-semibold text-[#0F3D6E] py-2" onClick={() => setIsMenuOpen(false)}>
+                  {item}
+                </a>
               )
-            ))}
+            })}
             <div className="flex flex-col gap-2 mt-4">
               <Link to="/login" className="w-full px-6 py-4 rounded-xl font-bold text-[#0F3D6E] bg-gray-50 border border-gray-100 text-center block">
                 Iniciar sesión
