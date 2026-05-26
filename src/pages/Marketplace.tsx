@@ -4,7 +4,7 @@ import { api } from '../services/api'
 import { useDebounce } from '../hooks/useDebounce'
 import { useBackButtonGuard } from '../hooks/useBackButtonGuard'
 import { useAuth } from '../context/AuthContext'
-import { TrendingUp, LogIn, UserPlus, SlidersHorizontal, X, Package } from 'lucide-react'
+import { TrendingUp, LogIn, UserPlus, SlidersHorizontal, Package } from 'lucide-react'
 import Pagination from '../components/Pagination'
 import BackButtonModal from '../components/BackButtonModal'
 import SearchHero from '../components/Marketplace/SearchHero'
@@ -435,6 +435,130 @@ export default function Marketplace() {
     precioMinProductos || precioMaxProductos || ordenServicios || ordenProductos
   )
 
+  const filterContent = (
+    <>
+      <p className="font-heading text-lg font-semibold text-brand-navy">Descubre a tu modo</p>
+      <div className="mt-4 flex gap-2 rounded-2xl bg-brand-cyanlt/80 p-1">
+        <button
+          type="button"
+          onClick={() => setTab('servicios')}
+          className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'servicios' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
+        >
+          Servicios
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('productos')}
+          className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'productos' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
+        >
+          Productos
+        </button>
+      </div>
+
+      <div className="mt-5 space-y-4 text-sm">
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-search">
+            Buscar
+          </label>
+          <input
+            id="filter-search"
+            type="text"
+            value={tab === 'servicios' ? searchServicios : searchProductos}
+            onChange={(e) => tab === 'servicios' ? setSearchServicios(e.target.value) : setSearchProductos(e.target.value)}
+            placeholder={tab === 'servicios' ? 'Nombre de empresa o servicio' : 'Nombre del producto'}
+            className="w-full rounded-xl border border-brand-cyan/20 bg-brand-cyanlt/40 px-4 py-3 font-medium text-brand-deep placeholder:text-brand-deep/40 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-category">
+            Categoría
+          </label>
+          <select
+            id="filter-category"
+            value={tab === 'servicios' ? catServicios : catProductos}
+            onChange={(e) => tab === 'servicios' ? setCatServicios(e.target.value) : setCatProductos(e.target.value)}
+            className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+          >
+            <option value="">Todas</option>
+            {categorias.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-city">
+            Ciudad
+          </label>
+          <select
+            id="filter-city"
+            value={tab === 'servicios' ? ciuServicios : ciuProductos}
+            onChange={(e) => tab === 'servicios' ? setCiuServicios(e.target.value) : setCiuProductos(e.target.value)}
+            className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+          >
+            <option value="">Todas</option>
+            {ciudades.map((ciudad) => (
+              <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60">
+            Rango de precio
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              min="0"
+              value={tab === 'servicios' ? precioMinServicios : precioMinProductos}
+              onChange={(e) => tab === 'servicios' ? setPrecioMinServicios(e.target.value) : setPrecioMinProductos(e.target.value)}
+              placeholder="Min"
+              className="rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+            />
+            <input
+              type="number"
+              min="0"
+              value={tab === 'servicios' ? precioMaxServicios : precioMaxProductos}
+              onChange={(e) => tab === 'servicios' ? setPrecioMaxServicios(e.target.value) : setPrecioMaxProductos(e.target.value)}
+              placeholder="Max"
+              className="rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-order">
+            Ordenar por
+          </label>
+          <select
+            id="filter-order"
+            value={tab === 'servicios' ? ordenServicios : ordenProductos}
+            onChange={(e) => tab === 'servicios' ? setOrdenServicios(e.target.value) : setOrdenProductos(e.target.value)}
+            className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+          >
+            <option value="">Más recientes</option>
+            <option value="precio_asc">Precio: Menor a Mayor</option>
+            <option value="precio_desc">Precio: Mayor a Menor</option>
+            <option value="mejor_calificacion">Mejor calificación</option>
+            <option value="mas_vendidos">Más vendidos</option>
+          </select>
+        </div>
+
+        {anyFilterActive && (
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="w-full rounded-full border border-brand-cyan bg-white px-4 py-2 text-sm font-semibold text-brand-cyan transition hover:bg-brand-cyan/10"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+    </>
+  )
+
   // Handlers de cambio de página con scroll to top
   const handlePageChangeServicios = (page: number) => {
     setPageServicios(page)
@@ -461,8 +585,6 @@ export default function Marketplace() {
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [searchServicios, searchProductos, catServicios, catProductos, ciuServicios, ciuProductos, precioMinServicios, precioMaxServicios, precioMinProductos, precioMaxProductos])
-
-  const mobileFiltersVisible = showFilters && window.innerWidth < 768
 
   return (
     <>
@@ -505,137 +627,29 @@ export default function Marketplace() {
             tab={tab}
           />
 
-          <section className="grid gap-8 lg:grid-cols-[320px,1fr]">
-            {/* Filtros */}
-            <aside
-              className={`relative z-30 rounded-3xl bg-white p-6 shadow-[0_16px_40px_rgba(14,58,95,0.08)] transition-all lg:sticky lg:top-8 ${showFilters ? 'block' : 'hidden lg:block'}`}
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <p className="font-heading text-lg font-semibold text-brand-navy">Descubre a tu modo</p>
-                {mobileFiltersVisible && (
-                  <button type="button" className="rounded-full p-2 text-brand-deep/60" onClick={() => setShowFilters(false)}>
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="mb-5 flex gap-2 rounded-2xl bg-brand-cyanlt/80 p-1">
-                <button
-                  type="button"
-                  onClick={() => setTab('servicios')}
-                  className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'servicios' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
-                >
-                  Servicios
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTab('productos')}
-                  className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'productos' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
-                >
-                  Productos
-                </button>
-              </div>
-
-              <div className="space-y-5 text-sm">
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-search">
-                    Buscar
-                  </label>
-                  <input
-                    id="filter-search"
-                    type="text"
-                    value={tab === 'servicios' ? searchServicios : searchProductos}
-                    onChange={(e) => tab === 'servicios' ? setSearchServicios(e.target.value) : setSearchProductos(e.target.value)}
-                    placeholder={tab === 'servicios' ? 'Nombre de empresa o servicio' : 'Nombre del producto'}
-                    className="w-full rounded-xl border border-brand-cyan/20 bg-brand-cyanlt/40 px-4 py-3 font-medium text-brand-deep placeholder:text-brand-deep/40 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-category">
-                    Categoría
-                  </label>
-                  <select
-                    id="filter-category"
-                    value={tab === 'servicios' ? catServicios : catProductos}
-                    onChange={(e) => tab === 'servicios' ? setCatServicios(e.target.value) : setCatProductos(e.target.value)}
-                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
-                  >
-                    <option value="">Todas</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-city">
-                    Ciudad
-                  </label>
-                  <select
-                    id="filter-city"
-                    value={tab === 'servicios' ? ciuServicios : ciuProductos}
-                    onChange={(e) => tab === 'servicios' ? setCiuServicios(e.target.value) : setCiuProductos(e.target.value)}
-                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
-                  >
-                    <option value="">Todas</option>
-                    {ciudades.map((ciudad) => (
-                      <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60">
-                    Rango de precio
+          <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[280px_1fr]">
+            <aside className="self-start">
+              <details
+                className="mb-6 flex flex-col rounded-3xl bg-white p-4 shadow-[0_16px_40px_rgba(14,58,95,0.08)] lg:hidden"
+                open={showFilters}
+                onToggle={(event) => setShowFilters((event.target as HTMLDetailsElement).open)}
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-brand-navy">
+                  <span className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filtros
                   </span>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={tab === 'servicios' ? precioMinServicios : precioMinProductos}
-                      onChange={(e) => tab === 'servicios' ? setPrecioMinServicios(e.target.value) : setPrecioMinProductos(e.target.value)}
-                      placeholder="Min"
-                      className="w-1/2 rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      value={tab === 'servicios' ? precioMaxServicios : precioMaxProductos}
-                      onChange={(e) => tab === 'servicios' ? setPrecioMaxServicios(e.target.value) : setPrecioMaxProductos(e.target.value)}
-                      placeholder="Max"
-                      className="w-1/2 rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
-                    />
+                  <span className="text-xs font-medium text-brand-deep/50">{showFilters ? 'Ocultar' : 'Mostrar'}</span>
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-3xl bg-white p-1">
+                    {filterContent}
                   </div>
                 </div>
+              </details>
 
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-order">
-                    Ordenar por
-                  </label>
-                  <select
-                    id="filter-order"
-                    value={tab === 'servicios' ? ordenServicios : ordenProductos}
-                    onChange={(e) => tab === 'servicios' ? setOrdenServicios(e.target.value) : setOrdenProductos(e.target.value)}
-                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan32 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
-                  >
-                    <option value="">Más recientes</option>
-                    <option value="precio_asc">Precio: Menor a Mayor</option>
-                    <option value="precio_desc">Precio: Mayor a Menor</option>
-                    <option value="mejor_calificacion">Mejor calificación</option>
-                    <option value="mas_vendidos">Más vendidos</option>
-                  </select>
-                </div>
-
-                {anyFilterActive && (
-                  <button
-                    type="button"
-                    onClick={handleClearFilters}
-                    className="w-full rounded-full border border-brand-cyan bg-white px-4 py-2 text-sm font-semibold text-brand-cyan transition hover:bg-brand-cyan/10"
-                  >
-                    Limpiar filtros
-                  </button>
-                )}
+              <div className="sticky top-24 hidden rounded-3xl bg-white p-4 shadow-[0_16px_40px_rgba(14,58,95,0.08)] lg:block">
+                {filterContent}
               </div>
             </aside>
 
