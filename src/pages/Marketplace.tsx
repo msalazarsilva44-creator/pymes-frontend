@@ -359,6 +359,17 @@ export default function Marketplace() {
     }))
   }, [categorias])
 
+  const topCategorias = useMemo<CategoriaItem[]>(() => {
+    if (!categoriaItems.length) return []
+    const sorted = [...categoriaItems].sort((a, b) => {
+      const countA = a.empresas_count ?? 0
+      const countB = b.empresas_count ?? 0
+      if (countA === countB) return 0
+      return countB - countA
+    })
+    return sorted.slice(0, 4)
+  }, [categoriaItems])
+
   const featuredEmpresa = useMemo<EmpresaDestacada | null>(() => {
     if (!Array.isArray(empresas) || empresas.length === 0) return null
 
@@ -656,9 +667,9 @@ export default function Marketplace() {
             {/* Contenido principal */}
             <div className="flex flex-col gap-10">
               <section className="space-y-6">
-                {categoriaItems.length > 0 ? (
+                {topCategorias.length > 0 ? (
                   <CategoryGrid
-                    categorias={categoriaItems}
+                    categorias={topCategorias}
                     onSelect={handleCategorySelect}
                     activeId={activeCategoriaId}
                     onSeeAll={handleSeeAllCategories}

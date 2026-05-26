@@ -113,7 +113,7 @@ function CategoryGrid({ categorias, onSelect, activeId, onSeeAll }: CategoryGrid
         whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+        className="grid grid-cols-2 gap-3 md:grid-cols-4"
       >
         {categorias.slice(0, 10).map((categoria) => (
           <CategoryCard
