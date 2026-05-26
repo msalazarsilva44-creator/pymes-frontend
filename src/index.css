@@ -1,26 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Poppins:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Colores principales */
-  --color-mercarof-primary: #0F3D6E;
+  /* Paleta de marca */
+  --color-brand-navy: #0E3A5F;
+  --color-brand-navy2: #103C5E;
+  --color-brand-deep: #0A2E4A;
+  --color-brand-cyan: #1FA8CC;
+  --color-brand-cyanlt: #E6F4FA;
+  --color-brand-star: #F5B301;
+
+  /* Aliases legacy */
+  --color-mercarof-primary: var(--color-brand-navy);
   --color-mercarof-brand: #1D6FAD;
-  --color-mercarof-accent: #00B4D8;
+  --color-mercarof-accent: var(--color-brand-cyan);
   --color-mercarof-surface: #F0F6FC;
   --color-mercarof-text: #1E2A3A;
   --color-mercarof-muted: #6B7A90;
-
-  /* Colores legacy (compatibilidad con componentes existentes) */
-  --color-mercarof-navy: #0F3D6E;
+  --color-mercarof-navy: var(--color-brand-navy);
   --color-mercarof-navy-dark: #002942;
   --color-mercarof-navy-light: #1D6FAD;
-  --color-mercarof-cyan: #00B4D8;
+  --color-mercarof-cyan: var(--color-brand-cyan);
   --color-mercarof-cyan-dark: #0082B8;
   --color-mercarof-cyan-light: #33B8E8;
 
   /* Fuentes */
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-display: 'Sora', sans-serif;
+  --font-sans: 'Open Sans', system-ui, sans-serif;
+  --font-heading: 'Poppins', 'Open Sans', sans-serif;
 
   /* Animaciones */
   --animate-fade-up: fade-up 0.6s ease-out forwards;
@@ -65,7 +71,9 @@
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-sans);
+    background-color: #F4F7FA;
+    color: var(--color-brand-deep);
   }
 }
 

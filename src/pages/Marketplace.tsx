@@ -1,18 +1,42 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../services/api'
 import { useDebounce } from '../hooks/useDebounce'
 import { useBackButtonGuard } from '../hooks/useBackButtonGuard'
 import { useAuth } from '../context/AuthContext'
-import { Search, MapPin, Package, Wrench, SlidersHorizontal, X } from 'lucide-react'
-import Navbar from '../components/Navbar'
+import { TrendingUp, LogIn, UserPlus, SlidersHorizontal, X, Package } from 'lucide-react'
 import Pagination from '../components/Pagination'
 import BackButtonModal from '../components/BackButtonModal'
+import SearchHero from '../components/Marketplace/SearchHero'
+import CategoryGrid, { type CategoriaItem } from '../components/Marketplace/CategoryGrid'
+import FeaturedBusiness, { type EmpresaDestacada } from '../components/Marketplace/FeaturedBusiness'
+import ServiceCard, { type ServicioListado } from '../components/Marketplace/ServiceCard'
+import EmptyState from '../components/Marketplace/EmptyState'
+import { CategorySkeleton, CardSkeleton } from '../components/Marketplace/Skeletons'
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'
 
 // Cache con localStorage para persistir entre recargas
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+
+const parseRatingValue = (value: number | string | null | undefined): number => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const hasDestacadoFlag = (empresa: Record<string, unknown>): boolean => {
+  return Boolean(
+    empresa?.destacado ||
+    empresa?.destacada ||
+    empresa?.es_destacado ||
+    empresa?.is_destacado ||
+    empresa?.featured
+  )
+}
 
 const getCache = (key: string) => {
   try {
@@ -321,6 +345,96 @@ export default function Marketplace() {
     return () => controller.abort()
   }, [tab, debouncedSearchProductos, catProductos, ciuProductos, precioMinProductos, precioMaxProductos, ordenProductos, searchProductos, pageProductos])
 
+  const currentSearchValue = tab === 'servicios' ? searchServicios : searchProductos
+
+  const categoriaItems = useMemo<CategoriaItem[]>(() => {
+    if (!Array.isArray(categorias)) return []
+    return categorias.map((cat: any) => ({
+      id: Number(cat.id),
+      nombre: cat.nombre ?? 'Sin nombre',
+      slug: cat.slug ?? undefined,
+      empresas_count: cat.empresas_count ?? cat.empresas?.length ?? undefined,
+      servicios_count: cat.servicios_count ?? cat.servicios?.length ?? undefined,
+      productos_count: cat.productos_count ?? cat.productos?.length ?? undefined,
+    }))
+  }, [categorias])
+
+  const featuredEmpresa = useMemo<EmpresaDestacada | null>(() => {
+    if (!Array.isArray(empresas) || empresas.length === 0) return null
+
+    const flagged = empresas.find((empresa) => hasDestacadoFlag(empresa))
+    if (flagged) return flagged
+
+    const sorted = [...empresas].sort((a, b) => parseRatingValue(b.calificacion_promedio) - parseRatingValue(a.calificacion_promedio))
+    return sorted[0] ?? null
+  }, [empresas])
+
+  const topRatedEmpresas = useMemo<ServicioListado[]>(() => {
+    if (!Array.isArray(empresas)) return []
+    const sorted = [...empresas]
+      .filter((empresa) => parseRatingValue(empresa.calificacion_promedio) > 0)
+      .sort((a, b) => parseRatingValue(b.calificacion_promedio) - parseRatingValue(a.calificacion_promedio))
+    return sorted.slice(0, 6)
+  }, [empresas])
+
+  const activeCategoriaId = catServicios ? Number(catServicios) : undefined
+
+  const handleCategorySelect = useCallback((categoriaId: number) => {
+    setTab('servicios')
+    setCatServicios(String(categoriaId))
+    setShowFilters(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  const handleSeeAllCategories = useCallback(() => {
+    setCatServicios('')
+    setTab('servicios')
+  }, [])
+
+  const handleHeroChange = useCallback((value: string) => {
+    if (tab === 'servicios') {
+      setSearchServicios(value)
+    } else {
+      setSearchProductos(value)
+    }
+  }, [tab])
+
+  const handleHeroSubmit = useCallback(() => {
+    if (tab === 'servicios') {
+      setPageServicios(1)
+    } else {
+      setPageProductos(1)
+    }
+  }, [tab])
+
+  const handleClearFilters = useCallback(() => {
+    setSearchServicios('')
+    setCatServicios('')
+    setCiuServicios('')
+    setPrecioMinServicios('')
+    setPrecioMaxServicios('')
+    setOrdenServicios('')
+    setSearchProductos('')
+    setCatProductos('')
+    setCiuProductos('')
+    setPrecioMinProductos('')
+    setPrecioMaxProductos('')
+    setOrdenProductos('')
+    setPageServicios(1)
+    setPageProductos(1)
+  }, [])
+
+  const isLoadingServicios = loading && tab === 'servicios'
+  const isLoadingProductos = loading && tab === 'productos'
+  const isInitialServicios = isLoadingServicios && empresas.length === 0
+  const isInitialProductos = isLoadingProductos && productos.length === 0
+
+  const anyFilterActive = Boolean(
+    searchServicios || searchProductos || catServicios || catProductos ||
+    ciuServicios || ciuProductos || precioMinServicios || precioMaxServicios ||
+    precioMinProductos || precioMaxProductos || ordenServicios || ordenProductos
+  )
+
   // Handlers de cambio de página con scroll to top
   const handlePageChangeServicios = (page: number) => {
     setPageServicios(page)
@@ -348,358 +462,366 @@ export default function Marketplace() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [searchServicios, searchProductos, catServicios, catProductos, ciuServicios, ciuProductos, precioMinServicios, precioMaxServicios, precioMinProductos, precioMaxProductos])
 
+  const mobileFiltersVisible = showFilters && window.innerWidth < 768
+
   return (
     <>
-    <div className="min-h-screen" style={{ backgroundColor: '#f0f4f8' }}>
-      <Navbar />
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-mercarof-navy to-mercarof-cyan text-white">
-        <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Marketplace</h1>
-            <p className="text-white/90 mt-1 text-sm md:text-base">Encuentra los mejores servicios y productos locales</p>
+      <div className="min-h-screen bg-[#F4F7FA] text-brand-deep">
+        <header className="bg-brand-navy text-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-8">
+            <Link to="/" className="flex items-center gap-3 text-white transition hover:text-brand-cyan">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-cyan text-brand-deep shadow-lg">
+                <TrendingUp className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="font-heading text-lg font-semibold tracking-[0.2em]">MERCAROF</span>
+            </Link>
+            <div className="hidden items-center gap-3 md:flex">
+              <Link to="/login" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white/80 transition hover:text-white">
+                <LogIn className="h-4 w-4" />
+                Iniciar sesión
+              </Link>
+              <Link to="/registro" className="flex items-center gap-2 rounded-full bg-brand-cyan px-5 py-2 text-sm font-semibold text-brand-deep shadow-lg transition hover:bg-brand-cyan/90">
+                <UserPlus className="h-4 w-4" />
+                Registrarse
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFilters((prev) => !prev)}
+              className="flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10 md:hidden"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtros
+            </button>
           </div>
-          {/* Mobile filter toggle */}
-          <button
-            onClick={() => setShowFilters(true)}
-            className="md:hidden flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl text-white font-semibold text-sm transition-all shrink-0"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Filtros
-          </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Mobile filter overlay backdrop */}
-      {showFilters && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setShowFilters(false)} />
-      )}
+        <main className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-16 pt-6 md:px-8">
+          <SearchHero
+            value={currentSearchValue}
+            onChange={handleHeroChange}
+            onSubmit={handleHeroSubmit}
+            loading={loading}
+            tab={tab}
+          />
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Sidebar con filtros */}
-          <div className={`
-            fixed md:static inset-y-0 left-0 z-50 md:z-auto
-            w-80 md:w-72 flex-shrink-0
-            transform transition-transform duration-300 ease-out md:transform-none
-            ${showFilters ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-            overflow-y-auto md:overflow-visible
-          `}>
-            <div className="bg-white md:rounded-2xl shadow-lg p-6 md:sticky md:top-4 min-h-full md:min-h-0" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-              {/* Mobile close button */}
-              <div className="flex items-center justify-between mb-4 md:hidden">
-                <span className="font-bold text-gray-900">Filtros</span>
-                <button onClick={() => setShowFilters(false)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
+          <section className="grid gap-8 lg:grid-cols-[320px,1fr]">
+            {/* Filtros */}
+            <aside
+              className={`relative z-30 rounded-3xl bg-white p-6 shadow-[0_16px_40px_rgba(14,58,95,0.08)] transition-all lg:sticky lg:top-8 ${showFilters ? 'block' : 'hidden lg:block'}`}
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <p className="font-heading text-lg font-semibold text-brand-navy">Descubre a tu modo</p>
+                {mobileFiltersVisible && (
+                  <button type="button" className="rounded-full p-2 text-brand-deep/60" onClick={() => setShowFilters(false)}>
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
               </div>
-              {/* Tabs */}
-              <div className="flex gap-2 mb-6">
+
+              <div className="mb-5 flex gap-2 rounded-2xl bg-brand-cyanlt/80 p-1">
                 <button
+                  type="button"
                   onClick={() => setTab('servicios')}
-                  className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    tab === 'servicios'
-                      ? 'bg-mercarof-navy text-white shadow-lg shadow-mercarof-navy/30'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'servicios' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
                 >
                   Servicios
                 </button>
                 <button
+                  type="button"
                   onClick={() => setTab('productos')}
-                  className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                    tab === 'productos'
-                      ? 'bg-mercarof-navy text-white shadow-lg shadow-mercarof-navy/30'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === 'productos' ? 'bg-white text-brand-navy shadow-lg' : 'text-brand-deep/60 hover:text-brand-navy'}`}
                 >
                   Productos
                 </button>
               </div>
 
-              {/* Búsqueda */}
-              <div className="mb-5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Buscar</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <div className="space-y-5 text-sm">
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-search">
+                    Buscar
+                  </label>
                   <input
+                    id="filter-search"
                     type="text"
                     value={tab === 'servicios' ? searchServicios : searchProductos}
                     onChange={(e) => tab === 'servicios' ? setSearchServicios(e.target.value) : setSearchProductos(e.target.value)}
-                    placeholder={tab === 'servicios' ? 'Buscar servicios...' : 'Buscar productos...'}
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
+                    placeholder={tab === 'servicios' ? 'Nombre de empresa o servicio' : 'Nombre del producto'}
+                    className="w-full rounded-xl border border-brand-cyan/20 bg-brand-cyanlt/40 px-4 py-3 font-medium text-brand-deep placeholder:text-brand-deep/40 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40"
                   />
                 </div>
-              </div>
 
-              {/* Categoría */}
-              <div className="mb-5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Categoría</label>
-                <select
-                  value={tab === 'servicios' ? catServicios : catProductos}
-                  onChange={(e) => tab === 'servicios' ? setCatServicios(e.target.value) : setCatProductos(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
-                >
-                  <option value="">Todas</option>
-                  {categorias.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Ciudad */}
-              <div className="mb-5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Ciudad</label>
-                <select
-                  value={tab === 'servicios' ? ciuServicios : ciuProductos}
-                  onChange={(e) => tab === 'servicios' ? setCiuServicios(e.target.value) : setCiuProductos(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
-                >
-                  <option value="">Todas</option>
-                  {ciudades.map((ciudad) => (
-                    <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Rango de precio */}
-              <div className="mb-5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Rango de precio</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    value={tab === 'servicios' ? precioMinServicios : precioMinProductos}
-                    onChange={(e) => tab === 'servicios' ? setPrecioMinServicios(e.target.value) : setPrecioMinProductos(e.target.value)}
-                    placeholder="Min"
-                    className="w-1/2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={tab === 'servicios' ? precioMaxServicios : precioMaxProductos}
-                    onChange={(e) => tab === 'servicios' ? setPrecioMaxServicios(e.target.value) : setPrecioMaxProductos(e.target.value)}
-                    placeholder="Max"
-                    className="w-1/2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
-                  />
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-category">
+                    Categoría
+                  </label>
+                  <select
+                    id="filter-category"
+                    value={tab === 'servicios' ? catServicios : catProductos}
+                    onChange={(e) => tab === 'servicios' ? setCatServicios(e.target.value) : setCatProductos(e.target.value)}
+                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+                  >
+                    <option value="">Todas</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              {/* Ordenar */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Ordenar por</label>
-                <select
-                  value={tab === 'servicios' ? ordenServicios : ordenProductos}
-                  onChange={(e) => tab === 'servicios' ? setOrdenServicios(e.target.value) : setOrdenProductos(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-mercarof-cyan focus:border-transparent text-sm transition-all"
-                >
-                  <option value="">Más recientes</option>
-                  <option value="precio_asc">Precio: Menor a Mayor</option>
-                  <option value="precio_desc">Precio: Mayor a Menor</option>
-                  <option value="mejor_calificacion">Mejor calificación</option>
-                  <option value="mas_vendidos">Más vendidos</option>
-                </select>
-              </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-city">
+                    Ciudad
+                  </label>
+                  <select
+                    id="filter-city"
+                    value={tab === 'servicios' ? ciuServicios : ciuProductos}
+                    onChange={(e) => tab === 'servicios' ? setCiuServicios(e.target.value) : setCiuProductos(e.target.value)}
+                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+                  >
+                    <option value="">Todas</option>
+                    {ciudades.map((ciudad) => (
+                      <option key={ciudad.id} value={ciudad.id}>{ciudad.nombre}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Mobile apply button */}
-              <button
-                onClick={() => setShowFilters(false)}
-                className="w-full mt-6 py-3 bg-mercarof-navy text-white rounded-xl font-semibold text-sm md:hidden"
-              >
-                Aplicar filtros
-              </button>
+                <div>
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60">
+                    Rango de precio
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={tab === 'servicios' ? precioMinServicios : precioMinProductos}
+                      onChange={(e) => tab === 'servicios' ? setPrecioMinServicios(e.target.value) : setPrecioMinProductos(e.target.value)}
+                      placeholder="Min"
+                      className="w-1/2 rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={tab === 'servicios' ? precioMaxServicios : precioMaxProductos}
+                      onChange={(e) => tab === 'servicios' ? setPrecioMaxServicios(e.target.value) : setPrecioMaxProductos(e.target.value)}
+                      placeholder="Max"
+                      className="w-1/2 rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-brand-deep/60" htmlFor="filter-order">
+                    Ordenar por
+                  </label>
+                  <select
+                    id="filter-order"
+                    value={tab === 'servicios' ? ordenServicios : ordenProductos}
+                    onChange={(e) => tab === 'servicios' ? setOrdenServicios(e.target.value) : setOrdenProductos(e.target.value)}
+                    className="w-full rounded-xl border border-brand-cyan/20 bg-white px-4 py-3 font-medium text-brand-deep focus:border-brand-cyan32 focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+                  >
+                    <option value="">Más recientes</option>
+                    <option value="precio_asc">Precio: Menor a Mayor</option>
+                    <option value="precio_desc">Precio: Mayor a Menor</option>
+                    <option value="mejor_calificacion">Mejor calificación</option>
+                    <option value="mas_vendidos">Más vendidos</option>
+                  </select>
+                </div>
+
+                {anyFilterActive && (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="w-full rounded-full border border-brand-cyan bg-white px-4 py-2 text-sm font-semibold text-brand-cyan transition hover:bg-brand-cyan/10"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            </aside>
+
+            {/* Contenido principal */}
+            <div className="flex flex-col gap-10">
+              <section className="space-y-6">
+                {categoriaItems.length > 0 ? (
+                  <CategoryGrid
+                    categorias={categoriaItems}
+                    onSelect={handleCategorySelect}
+                    activeId={activeCategoriaId}
+                    onSeeAll={handleSeeAllCategories}
+                  />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <CategorySkeleton key={idx} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {featuredEmpresa && (
+                <FeaturedBusiness empresa={featuredEmpresa} />
+              )}
+
+              {topRatedEmpresas.length > 0 && (
+                <section className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="font-heading text-2xl font-semibold text-brand-navy">Mejor valorados</h2>
+                      <p className="text-sm font-medium text-brand-deep/70">Negocios con calificaciones sobresalientes de nuestra comunidad</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                      className="text-sm font-semibold text-brand-cyan underline-offset-4 transition hover:text-brand-cyan/80"
+                    >
+                      Ver más
+                    </button>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {topRatedEmpresas.map((empresa) => (
+                      <ServiceCard key={empresa.id} empresa={empresa} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="font-heading text-2xl font-semibold text-brand-navy">
+                    {tab === 'servicios' ? 'Empresas con servicios' : 'Productos destacados'}
+                  </h2>
+                  <div className="flex gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-deep/40">
+                    {tab === 'servicios' ? `Página ${paginationServicios.currentPage} de ${paginationServicios.lastPage}` : `Página ${paginationProductos.currentPage} de ${paginationProductos.lastPage}`}
+                  </div>
+                </div>
+
+                {tab === 'servicios' ? (
+                  isInitialServicios ? (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      {Array.from({ length: 6 }).map((_, idx) => (
+                        <CardSkeleton key={idx} />
+                      ))}
+                    </div>
+                  ) : empresas.length === 0 ? (
+                    <EmptyState
+                      title="No encontramos coincidencias"
+                      description="Prueba ajustando tus filtros o explora otras categorías populares."
+                      actionLabel={anyFilterActive ? 'Limpiar búsqueda' : undefined}
+                      onAction={anyFilterActive ? handleClearFilters : undefined}
+                    />
+                  ) : (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {empresas.map((empresa) => (
+                          <ServiceCard key={empresa.id} empresa={empresa} />
+                        ))}
+                      </div>
+                      <Pagination
+                        currentPage={paginationServicios.currentPage}
+                        lastPage={paginationServicios.lastPage}
+                        total={paginationServicios.total}
+                        perPage={paginationServicios.perPage}
+                        onPageChange={handlePageChangeServicios}
+                      />
+                    </>
+                  )
+                ) : (
+                  isInitialProductos ? (
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                      {Array.from({ length: 6 }).map((_, idx) => (
+                        <CardSkeleton key={idx} />
+                      ))}
+                    </div>
+                  ) : productos.length === 0 ? (
+                    <EmptyState
+                      title="No hay productos disponibles"
+                      description="Ajusta los filtros o vuelve más tarde para descubrir nuevas ofertas."
+                      actionLabel={anyFilterActive ? 'Limpiar filtros' : undefined}
+                      onAction={anyFilterActive ? handleClearFilters : undefined}
+                      icon={<Package className="h-10 w-10" />}
+                    />
+                  ) : (
+                    <>
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {productos.map((producto) => (
+                          <Link
+                            key={producto.id}
+                            to={`/empresa/${producto.empresa?.id}`}
+                            className="group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-[0_16px_40px_rgba(14,58,95,0.08)] transition hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(14,58,95,0.16)]"
+                          >
+                            <div className="relative aspect-[4/3] bg-brand-cyanlt">
+                              {producto.imagenes && producto.imagenes.length > 0 ? (
+                                <img
+                                  src={`${API_URL}${producto.imagenes[0].url}`}
+                                  alt={producto.nombre}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-brand-navy/30">
+                                  <Package className="h-10 w-10" />
+                                </div>
+                              )}
+                              {producto.empresa?.logo && (
+                                <img
+                                  src={`${API_URL}${producto.empresa.logo}`}
+                                  alt={producto.empresa.nombre_comercial}
+                                  className="absolute left-4 top-4 h-12 w-12 rounded-xl border-2 border-white object-cover shadow-lg"
+                                  loading="lazy"
+                                />
+                              )}
+                            </div>
+                            <div className="flex flex-1 flex-col gap-3 p-5">
+                              <div className="flex items-start justify-between gap-2">
+                                <h3 className="font-heading text-lg font-semibold text-brand-navy line-clamp-1">{producto.nombre}</h3>
+                                {producto.precio && (
+                                  <span className="rounded-full bg-brand-cyan/10 px-3 py-1 text-xs font-semibold text-brand-navy">
+                                    ${Number(producto.precio).toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                                  </span>
+                                )}
+                              </div>
+                              {producto.descripcion && (
+                                <p className="text-sm font-medium text-brand-deep/70 line-clamp-2">{producto.descripcion}</p>
+                              )}
+                              <div className="mt-auto flex flex-wrap items-center gap-2 text-xs font-semibold text-brand-deep/60">
+                                {producto.empresa?.nombre_comercial && (
+                                  <span className="rounded-full bg-brand-cyanlt px-3 py-1 text-brand-navy">
+                                    {producto.empresa.nombre_comercial}
+                                  </span>
+                                )}
+                                {typeof producto.cantidad === 'number' && (
+                                  <span className="rounded-full border border-brand-cyan/20 px-3 py-1">
+                                    Stock: {producto.cantidad}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                      <Pagination
+                        currentPage={paginationProductos.currentPage}
+                        lastPage={paginationProductos.lastPage}
+                        total={paginationProductos.total}
+                        perPage={paginationProductos.perPage}
+                        onPageChange={handlePageChangeProductos}
+                      />
+                    </>
+                  )
+                )}
+              </section>
             </div>
-          </div>
-
-          {/* Contenido principal */}
-          <div className="flex-1 relative">
-            {/* Indicador de actualización en segundo plano */}
-            {loading && (empresas.length > 0 || productos.length > 0) && (
-              <div className="absolute top-0 right-0 p-2 z-10">
-                <div className="flex items-center gap-2 text-xs text-gray-500 bg-white/90 px-3 py-1.5 rounded-full shadow-sm">
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-mercarof-cyan" />
-                  Actualizando...
-                </div>
-              </div>
-            )}
-            
-            {/* Lista de resultados */}
-            {loading && empresas.length === 0 && productos.length === 0 ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mercarof-cyan" />
-              </div>
-            ) : tab === 'servicios' ? (
-              empresas.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Wrench className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg">No se encontraron empresas con servicios</p>
-                  <p className="text-sm mt-2">Intenta con otros filtros de búsqueda</p>
-                </div>
-              ) : (
-                <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  {empresas.map((empresa) => (
-                    <Link
-                      key={empresa.id}
-                      to={`/empresa/${empresa.id}`}
-                      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] p-6 border border-gray-200 block relative"
-                      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                    >
-                      {/* Franja azul arriba */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-mercarof-navy to-mercarof-cyan rounded-t-2xl"></div>
-
-                      {/* Logo placeholder con inicial */}
-                      <div className="flex items-start gap-4 mb-4 pt-2">
-                        {empresa.logo ? (
-                          <img
-                            src={`${API_URL}${empresa.logo}`}
-                            alt={empresa.nombre_comercial}
-                            className="w-16 h-16 rounded-xl object-cover border-2 border-gray-100"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-mercarof-navy to-mercarof-cyan flex items-center justify-center border-2 border-gray-100">
-                            <span className="text-white text-2xl font-bold">
-                              {empresa.nombre_comercial?.charAt(0)?.toUpperCase() || 'E'}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900">{empresa.nombre_comercial}</h3>
-                          {empresa.calificacion_promedio && (
-                            <div className="flex items-center gap-1 text-sm text-amber-500 bg-amber-50 px-2 py-1 rounded-full w-fit mt-1">
-                              <span>⭐</span>
-                              <span className="font-semibold">{empresa.calificacion_promedio}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{empresa.descripcion || 'Sin descripción'}</p>
-                      <div className="flex items-center gap-2 text-sm text-gray-700 mb-4">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium">{empresa.ciudad?.nombre}, {empresa.municipio?.nombre}</span>
-                      </div>
-                      <div className="mb-4">
-                        <p className="text-sm font-semibold text-gray-800 mb-3">
-                          {empresa.servicios_count || empresa.servicios?.length} {empresa.servicios_count === 1 ? 'servicio disponible' : 'servicios disponibles'}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {empresa.servicios?.slice(0, 3).map((servicio: any) => (
-                            <span key={servicio.id} className="text-xs font-semibold px-3 py-1.5 rounded-full" style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}>
-                              {servicio.nombre}
-                            </span>
-                          ))}
-                          {(empresa.servicios?.length || 0) > 3 && (
-                            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600">
-                              +{(empresa.servicios?.length || 0) - 3} más
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <span className="text-sm font-semibold text-mercarof-navy bg-blue-50 px-3 py-1.5 rounded-full">{empresa.categoria?.nombre}</span>
-                        <span className="text-sm text-mercarof-cyan hover:underline font-semibold">
-                          Ver empresa →
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={paginationServicios.currentPage}
-                  lastPage={paginationServicios.lastPage}
-                  total={paginationServicios.total}
-                  perPage={paginationServicios.perPage}
-                  onPageChange={handlePageChangeServicios}
-                />
-              </>
-              )
-            ) : (
-              productos.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-lg">No se encontraron productos</p>
-                  <p className="text-sm mt-2">Intenta con otros filtros de búsqueda</p>
-                </div>
-              ) : (
-                <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-                  {productos.map((producto) => (
-                    <Link
-                      key={producto.id}
-                      to={`/empresa/${producto.empresa?.id}`}
-                      className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-200 hover:scale-[1.02] overflow-hidden border border-gray-200 block relative"
-                      style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
-                    >
-                      {/* Franja azul arriba */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-mercarof-navy to-mercarof-cyan z-10"></div>
-
-                      <div className="relative aspect-square bg-gray-100">
-                        {producto.imagenes && producto.imagenes.length > 0 ? (
-                          <img
-                            src={`${API_URL}${producto.imagenes[0].url}`}
-                            alt={producto.nombre}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                            <Package className="w-12 h-12 text-gray-300" />
-                          </div>
-                        )}
-                        {/* Logo de la empresa superpuesto */}
-                        <div className="absolute top-2 right-2 z-20">
-                          {producto.empresa?.logo ? (
-                            <img
-                              src={`${API_URL}${producto.empresa.logo}`}
-                              alt={producto.empresa.nombre_comercial}
-                              className="w-10 h-10 rounded-lg object-cover border-2 border-white shadow-md"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-mercarof-navy to-mercarof-cyan flex items-center justify-center border-2 border-white shadow-md">
-                              <span className="text-white text-sm font-bold">
-                                {producto.empresa?.nombre_comercial?.charAt(0)?.toUpperCase() || 'E'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-bold text-gray-900 line-clamp-1">{producto.nombre}</h3>
-                        {producto.descripcion && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{producto.descripcion}</p>
-                        )}
-                        <div className="flex items-center justify-between mt-3">
-                          <span className="text-mercarof-navy font-bold text-lg">${producto.precio}</span>
-                          <span className="text-xs font-semibold text-gray-600 bg-blue-50 px-3 py-1.5 rounded-full">Stock: {producto.cantidad}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-                <Pagination
-                  currentPage={paginationProductos.currentPage}
-                  lastPage={paginationProductos.lastPage}
-                  total={paginationProductos.total}
-                  perPage={paginationProductos.perPage}
-                  onPageChange={handlePageChangeProductos}
-                />
-                </>
-              )
-            )}
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
-    </div>
-    {token && (
-      <BackButtonModal
-        isOpen={showExitModal}
-        onStay={() => setShowExitModal(false)}
-        onLeave={() => { setShowExitModal(false); logout(); window.location.href = '/login' }}
-      />
-    )}
+
+      {token && (
+        <BackButtonModal
+          isOpen={showExitModal}
+          onStay={() => setShowExitModal(false)}
+          onLeave={() => { setShowExitModal(false); logout(); window.location.href = '/login' }}
+        />
+      )}
     </>
   )
 }
