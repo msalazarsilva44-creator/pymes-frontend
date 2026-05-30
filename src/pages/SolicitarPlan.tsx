@@ -1,39 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { Check, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { api } from '../services/api'
 import DashboardLayout from '../components/DashboardLayout'
-import { Upload, Check, Star } from 'lucide-react'
-
-type ColorBadge = 'blue' | 'violet' | 'emerald' | 'amber' | 'rose'
-
-type Plan = {
-  id: number
-  nombre: string
-  slug: string
-  descripcion: string | null
-  precio_mensual: number
-  precio_anual: number
-  caracteristicas: string[] | null
-  color_badge: ColorBadge
-  destacado: boolean
-  orden: number
-}
-
-const CARD_RING: Record<ColorBadge, string> = {
-  blue: 'ring-blue-500',
-  violet: 'ring-violet-500',
-  emerald: 'ring-emerald-500',
-  amber: 'ring-amber-500',
-  rose: 'ring-rose-500',
-}
-
-const CARD_ACCENT: Record<ColorBadge, string> = {
-  blue: 'from-blue-500 to-blue-600',
-  violet: 'from-violet-500 to-violet-600',
-  emerald: 'from-emerald-500 to-emerald-600',
-  amber: 'from-amber-500 to-amber-600',
-  rose: 'from-rose-500 to-rose-600',
-}
+import { PlanSelector } from '../components/Payment/PlanSelector'
+import { PaymentMethodTabs } from '../components/Payment/PaymentMethodTabs'
+import { BankDetails } from '../components/Payment/BankDetails'
+import { OrderSummary } from '../components/Payment/OrderSummary'
+import { PaymentForm } from '../components/Payment/PaymentForm'
+import { ProofUpload } from '../components/Payment/ProofUpload'
+import type { Plan, PaymentFieldKey } from '../components/Payment/types'
 
 const METODOS_PAGO = [
   { tipo: 'banco', nombre: '🏦 Banco' },
@@ -59,6 +36,8 @@ export default function SolicitarPlan() {
   const [captureFile, setCaptureFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [touched, setTouched] = useState<Partial<Record<PaymentFieldKey, boolean>>>({})
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     const cargarPlanes = async () => {
@@ -83,14 +62,11 @@ export default function SolicitarPlan() {
     ? Number(tipoPeriodo === 'mensual' ? selectedPlan.precio_mensual : selectedPlan.precio_anual)
     : 0
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setCaptureFile(file)
-      const reader = new FileReader()
-      reader.onload = (ev) => setPreview(ev.target?.result as string)
-      reader.readAsDataURL(file)
-    }
+  const processFile = (file: File) => {
+    setCaptureFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setPreview(ev.target?.result as string)
+    reader.readAsDataURL(file)
   }
 
   const soloNumeros = (valor: string) => valor.replace(/\D/g, '')
@@ -169,288 +145,185 @@ export default function SolicitarPlan() {
     }
   }
 
-  if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"/></div></DashboardLayout>
+  const FIELDS: PaymentFieldKey[] = [
+    'nombre_empresa_pagadora',
+    'rif_pagador',
+    'referencia_bancaria',
+    'fecha_pago',
+  ]
+
+  // Reutiliza exactamente las reglas/mensajes de validarFormulario
+  const fieldError = (field: PaymentFieldKey): string => {
+    switch (field) {
+      case 'rif_pagador': {
+        const c = soloNumeros(formData.rif_pagador)
+        return c.length < 7 || c.length > 9
+          ? 'El RIF o cédula del pagador debe tener entre 7 y 9 dígitos numéricos.'
+          : ''
+      }
+      case 'referencia_bancaria': {
+        const c = soloNumeros(formData.referencia_bancaria)
+        return c.length !== 6
+          ? 'La referencia bancaria debe tener exactamente 6 dígitos (últimos 6 de la referencia).'
+          : ''
+      }
+      case 'nombre_empresa_pagadora':
+        return formData.nombre_empresa_pagadora.trim() ? '' : 'El nombre del pagador es requerido.'
+      case 'fecha_pago':
+        return formData.fecha_pago ? '' : 'La fecha de pago es requerida.'
+      default:
+        return ''
+    }
+  }
+
+  const errors: Partial<Record<PaymentFieldKey, string>> = {}
+  const valids: Partial<Record<PaymentFieldKey, boolean>> = {}
+  for (const f of FIELDS) {
+    const err = fieldError(f)
+    if (touched[f] && err) errors[f] = err
+    if (touched[f] && !err && formData[f].trim() !== '') valids[f] = true
+  }
+
+  const handleFieldChange = (field: PaymentFieldKey, value: string) => {
+    const next = field === 'rif_pagador' || field === 'referencia_bancaria' ? soloNumeros(value) : value
+    setFormData((prev) => ({ ...prev, [field]: next }))
+  }
+
+  const handleFieldBlur = (field: PaymentFieldKey) =>
+    setTouched((prev) => ({ ...prev, [field]: true }))
+
+  const handleRemoveFile = () => {
+    setCaptureFile(null)
+    setPreview(null)
+  }
+
+  const maxFecha = new Date().toISOString().split('T')[0]
+  const fade = prefersReducedMotion
+    ? {}
+    : { initial: { opacity: 0, y: -8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.2 } }
+
+  if (loading)
+    return (
+      <DashboardLayout>
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-cyan" />
+        </div>
+      </DashboardLayout>
+    )
 
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">💳 Solicitar Plan de Suscripción</h1>
-        <p className="text-gray-600">Mejora tu visibilidad con un plan Básico o Premium</p>
-      </div>
-
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
-          'bg-red-100 text-red-800 border border-red-200'
-        }`}>
-          {message.text}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">📋 Seleccionar Plan</h2>
-
-          {/* Period toggle */}
-          <div className="flex justify-center mb-6">
-            <div className="inline-flex bg-gray-100 rounded-xl p-1">
-              <button
-                type="button"
-                onClick={() => setTipoPeriodo('mensual')}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  tipoPeriodo === 'mensual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Mensual
-              </button>
-              <button
-                type="button"
-                onClick={() => setTipoPeriodo('anual')}
-                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  tipoPeriodo === 'anual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Anual
-                <span className="ml-1.5 text-xs text-emerald-600 font-bold">¡Ahorra!</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Plan cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {planes.map((plan) => {
-              const isSelected = planId === plan.id
-              const precio = Number(tipoPeriodo === 'mensual' ? plan.precio_mensual : plan.precio_anual)
-              const ahorroAnual = (Number(plan.precio_mensual) * 12) - Number(plan.precio_anual)
-              const color = plan.color_badge || 'blue'
-
-              return (
-                <button
-                  key={plan.id}
-                  type="button"
-                  onClick={() => setPlanId(plan.id)}
-                  className={`relative text-left p-5 rounded-xl border-2 transition-all ${
-                    isSelected
-                      ? `${CARD_RING[color]} ring-2 border-transparent shadow-lg`
-                      : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                  }`}
-                >
-                  {/* Accent bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-xl bg-gradient-to-r ${CARD_ACCENT[color]}`} />
-
-                  {/* Destacado */}
-                  {plan.destacado && (
-                    <div className="flex items-center gap-1 mb-3">
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span className="text-xs font-bold text-amber-600">Más popular</span>
-                    </div>
-                  )}
-
-                  <h3 className="text-lg font-bold text-gray-900">{plan.nombre}</h3>
-                  {plan.descripcion && <p className="text-xs text-gray-500 mt-0.5">{plan.descripcion}</p>}
-
-                  <div className="mt-3 mb-4">
-                    <span className="text-2xl font-bold text-gray-900">${precio}</span>
-                    <span className="text-sm text-gray-500 ml-1">USD/{tipoPeriodo === 'mensual' ? 'mes' : 'año'}</span>
-                    {tipoPeriodo === 'anual' && ahorroAnual > 0 && (
-                      <p className="text-xs text-emerald-600 font-semibold mt-1">Ahorras ${ahorroAnual.toFixed(2)}/año</p>
-                    )}
-                  </div>
-
-                  {plan.caracteristicas && plan.caracteristicas.length > 0 && (
-                    <ul className="space-y-1.5">
-                      {plan.caracteristicas.map((c: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                          <svg className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {/* Selected indicator */}
-                  {isSelected && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Price summary */}
-          {precioTotal > 0 && selectedPlan && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Plan <strong>{selectedPlan.nombre}</strong> — {tipoPeriodo === 'mensual' ? 'Mensual' : 'Anual'}</p>
-                <p className="text-3xl font-bold text-green-600">${precioTotal.toFixed(2)} USD</p>
-              </div>
-            </div>
-          )}
+      <div className="mx-auto max-w-5xl font-body">
+        <div className="mb-6">
+          <h1 className="font-heading text-2xl font-semibold text-brand-navy sm:text-3xl">Solicitar plan de suscripción</h1>
+          <p className="mt-1 text-sm text-brand-deep/60">Mejora tu visibilidad eligiendo un plan y registrando tu pago.</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">💳 Selecciona tu Método de Pago</h2>
-          <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-2">
-            {METODOS_PAGO.map(metodo => (
-              <button
-                key={metodo.tipo}
-                type="button"
-                onClick={() => setMetodoPago(metodo.tipo)}
-                className={`px-6 py-3 font-semibold rounded-t-lg ${metodoPago === metodo.tipo ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-              >
-                {metodo.nombre}
-              </button>
-            ))}
-          </div>
-
-          {metodoPago === 'banco' && (
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500 p-6 rounded-lg">
-              <h3 className="text-lg font-bold text-blue-900 mb-4">🏦 Transferencia Bancaria</h3>
-              <div className="space-y-2 text-blue-800">
-                <p><strong>Banco:</strong> Banco Provincial</p>
-                <p><strong>Tipo:</strong> Cuenta Corriente</p>
-                <p><strong>Número de Cuenta:</strong> 0108-1234-56789-0001234</p>
-                <p><strong>RIF:</strong> J-12345678-9</p>
-                <p><strong>Titular:</strong> ServiLocal C.A.</p>
-              </div>
-            </div>
-          )}
-
-          {metodoPago === 'binance' && (
-            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border-l-4 border-yellow-500 p-6 rounded-lg">
-              <h3 className="text-lg font-bold text-yellow-900 mb-4">₿ Binance Pay</h3>
-              <div className="space-y-2 text-yellow-800">
-                <p><strong>Binance ID:</strong> 123456789</p>
-                <p><strong>Email Binance:</strong> pagos@servilocal.com</p>
-                <p><strong>Criptomonedas Aceptadas:</strong> USDT, BTC, BNB</p>
-              </div>
-            </div>
-          )}
-
-          {metodoPago === 'paypal' && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-100 border-l-4 border-indigo-500 p-6 rounded-lg">
-              <h3 className="text-lg font-bold text-indigo-900 mb-4">💵 PayPal</h3>
-              <div className="space-y-2 text-indigo-800">
-                <p><strong>Email PayPal:</strong> pagos@servilocal.com</p>
-                <p><strong>Tipo de Cuenta:</strong> Cuenta de Negocios</p>
-                <p><strong>Nombre:</strong> ServiLocal</p>
-              </div>
-            </div>
-          )}
-
-          {metodoPago === 'zelle' && (
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-500 p-6 rounded-lg">
-              <h3 className="text-lg font-bold text-purple-900 mb-4">💸 Zelle</h3>
-              <div className="space-y-2 text-purple-800">
-                <p><strong>Email Zelle:</strong> pagos@servilocal.com</p>
-                <p><strong>Nombre Registrado:</strong> ServiLocal LLC</p>
-                <p><strong>País:</strong> Estados Unidos</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">💰 Información de Pago</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Pagador *</label>
-              <input
-                type="text"
-                value={formData.nombre_empresa_pagadora}
-                onChange={e => setFormData({ ...formData, nombre_empresa_pagadora: e.target.value })}
-                required
-                placeholder="Empresa o Persona que realizó el pago"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">RIF o Cédula del Pagador *</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formData.rif_pagador}
-                onChange={e => setFormData({ ...formData, rif_pagador: soloNumeros(e.target.value) })}
-                required
-                placeholder="Entre 7 y 9 dígitos (RIF o cédula)"
-                maxLength={9}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">{getReferenciaLabel()}</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={formData.referencia_bancaria}
-                onChange={e => setFormData({ ...formData, referencia_bancaria: soloNumeros(e.target.value) })}
-                required
-                placeholder={getReferenciaPlaceholder()}
-                maxLength={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha de Pago *</label>
-              <input
-                type="date"
-                value={formData.fecha_pago}
-                onChange={e => setFormData({ ...formData, fecha_pago: e.target.value })}
-                required
-                max={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-              />
-            </div>
-          </div>
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Capture de Pago *</label>
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Haz clic para subir</span> o arrastra y suelta</p>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF (MÁX. 5MB)</p>
-                </div>
-                <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" required />
-              </label>
-            </div>
-            {preview && (
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Vista previa:</p>
-                <img src={preview} alt="Preview" className="max-w-full h-auto rounded-lg border-2 border-gray-300" />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        <AnimatePresence>
+          {message && (
+            <motion.div
+              key={message.type + message.text}
+              {...fade}
+              className={`mb-6 flex items-start gap-2 rounded-lg border p-4 text-sm ${
+                message.type === 'success'
+                  ? 'border-green-200 bg-green-50 text-green-800'
+                  : 'border-red-200 bg-red-50 text-red-700'
+              }`}
             >
-              {submitting ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              {message.type === 'success' ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               ) : (
-                <Check className="w-4 h-4" />
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
               )}
-              {submitting ? 'Enviando...' : 'Enviar Solicitud'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/empresa')}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-6 py-3 rounded-lg transition-all"
-            >
-              Cancelar
-            </button>
+              <div>
+                <p className="font-semibold">{message.text}</p>
+                {message.type === 'success' && (
+                  <p className="mt-0.5 text-xs text-green-700">Tu solicitud será verificada en 24-48h. Te llevaremos a tu panel.</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_340px]">
+            {/* Columna izquierda: flujo */}
+            <div className="order-2 space-y-6 lg:order-1">
+              <PlanSelector
+                planes={planes}
+                planId={planId}
+                onSelectPlan={setPlanId}
+                tipoPeriodo={tipoPeriodo}
+                onChangePeriodo={setTipoPeriodo}
+              />
+
+              <section className="rounded-2xl border border-brand-cyan/15 bg-white p-6 shadow-[0_2px_16px_rgba(14,58,95,0.06)]">
+                <h2 className="font-heading text-lg font-semibold text-brand-navy">Método de pago</h2>
+                <div className="mt-4">
+                  <PaymentMethodTabs metodos={METODOS_PAGO} value={metodoPago} onChange={setMetodoPago} />
+                </div>
+                <div className="mt-5">
+                  <BankDetails metodoPago={metodoPago} />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-brand-cyan/15 bg-white p-6 shadow-[0_2px_16px_rgba(14,58,95,0.06)]">
+                <h2 className="font-heading text-lg font-semibold text-brand-navy">Información de pago</h2>
+                <div className="mt-5">
+                  <PaymentForm
+                    formData={formData}
+                    onChange={handleFieldChange}
+                    onBlur={handleFieldBlur}
+                    errors={errors}
+                    valids={valids}
+                    referenciaLabel={getReferenciaLabel()}
+                    referenciaPlaceholder={getReferenciaPlaceholder()}
+                    maxFecha={maxFecha}
+                  />
+                </div>
+                <div className="mt-6">
+                  <span className="mb-2 flex items-center gap-1 text-sm font-semibold text-brand-deep/80">
+                    Capture de pago <span className="text-red-500">*</span>
+                  </span>
+                  <ProofUpload
+                    file={captureFile}
+                    preview={preview}
+                    onFile={processFile}
+                    onRemove={handleRemoveFile}
+                  />
+                </div>
+              </section>
+
+              <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/empresa')}
+                  className="rounded-lg border border-brand-cyan/30 px-5 py-2.5 text-sm font-semibold text-brand-deep/70 transition hover:bg-brand-cyanlt/40"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-brand-navy px-8 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy2 disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {submitting ? 'Enviando solicitud...' : 'Enviar Solicitud'}
+                </button>
+              </div>
+            </div>
+
+            {/* Columna derecha: resumen */}
+            <div className="order-1 lg:order-2">
+              <OrderSummary selectedPlan={selectedPlan ?? null} tipoPeriodo={tipoPeriodo} precioTotal={precioTotal} />
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </DashboardLayout>
   )
 }
