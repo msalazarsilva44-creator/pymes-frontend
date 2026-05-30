@@ -19,7 +19,7 @@ export default function SuscripcionVencida() {
         </p>
         <div className="space-y-3">
           <a
-            href="/pago-empresa?renovar=1"
+            href="/dashboard/empresa/solicitar-plan"
             className="block w-full py-3 rounded-xl bg-mercarof-cyan text-slate-900 font-semibold shadow-lg shadow-mercarof-cyan/30 hover:shadow-xl hover:shadow-mercarof-cyan/40 transition-all"
           >
             Renovar suscripción

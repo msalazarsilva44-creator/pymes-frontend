@@ -84,10 +84,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isApproved])
 
   useEffect(() => {
+    // La página de solicitar/renovar plan debe ser accesible aunque la
+    // suscripción esté vencida o pendiente de pago; de lo contrario el guard
+    // expulsaría al usuario justo cuando intenta pagar.
+    if (location.pathname === '/dashboard/empresa/solicitar-plan') return
     if (estadoAcceso === 'vencida' || estadoAcceso === 'pendiente_pago') {
       navigate('/suscripcion-vencida', { replace: true })
     }
-  }, [estadoAcceso, navigate])
+  }, [estadoAcceso, navigate, location.pathname])
 
   // Filtrar items: ocultar los que requieren un módulo no activo
   const visibleNavItems = navItems.filter((item) => {
