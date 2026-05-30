@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@600;700;800&family=Poppins:wght@500;600;700&family=Open+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -9,6 +9,17 @@
   --color-mercarof-surface: #F0F6FC;
   --color-mercarof-text: #1E2A3A;
   --color-mercarof-muted: #6B7A90;
+
+  /* Paleta de marca (logo) */
+  --color-brand-navy: #0E3A5F;
+  --color-brand-navy2: #103C5E;
+  --color-brand-deep: #0A2E4A;
+  --color-brand-cyan: #1FA8CC;
+  --color-brand-cyanlt: #E6F4FA;
+
+  /* Fuentes de marca */
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Open Sans', system-ui, sans-serif;
 
   /* Colores legacy (compatibilidad con componentes existentes) */
   --color-mercarof-navy: #0F3D6E;
